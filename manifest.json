@@ -1,0 +1,11 @@
+{
+  "name": "Speekit",
+  "description": "TTS Extension",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": ["activeTab", "scripting", "storage", "tts"],
+  "action": {
+    "default_popup": "hello.html",
+    "default_icon": "speekit.png"
+  }
+}
