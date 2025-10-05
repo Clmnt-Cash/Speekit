@@ -1,5 +1,6 @@
 const readBtn = document.getElementById("readPage");
 const stopBtn = document.getElementById("stop");
+import { GCloud_TTS_API_KEY } from './config.js';
 
 // ------------------------------
 // 1. Extract readable text
@@ -109,13 +110,80 @@ function speakText(text) {
       rate: 1.0,
       pitch: 1.0,
       volume: 1.0,
-      lang: "en-US"   // ✅ English voice
+      lang: "en-US"   // langue de voix
     }
   );
 }
 
 function stopText() {
   chrome.tts.stop();
+}
+
+async function speakResponse(text) {
+  try {
+    if (!text || typeof text !== "string" || text.trim() === "") {
+      console.warn("No valid text to speak.");
+      return;
+    }
+
+    if (!GCloud_TTS_API_KEY) {
+      console.error("Missing GCloud_TTS_API_KEY. Please set it in config.js");
+      return;
+    }
+
+    // Prépare la requête Google TTS
+    const requestBody = {
+      input: { text },
+      voice: {
+        languageCode: "en-GB",        // Langue
+        name: "en-GB-Neural2-B",      // Voix
+      },
+      audioConfig: {
+        audioEncoding: "MP3",         // Format audio
+        speakingRate: 1.0,            // vitesse
+        pitch: 0.0                    // ton neutre
+      }
+    };
+
+    // 📡 Appel API Google Cloud
+    const response = await fetch(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GCloud_TTS_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody)
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`Google TTS API error: ${err}`);
+    }
+
+    // 🎵 Lecture audio
+    const data = await response.json();
+    const audioContent = data.audioContent;
+    const audioBlob = new Blob([Uint8Array.from(atob(audioContent), c => c.charCodeAt(0))], {
+      type: "audio/mp3"
+    });
+
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.play();
+
+    // Sauvegarde pour stopSpeech()
+    window.currentAudio = audio;
+  } catch (error) {
+    console.error("Error during Google Cloud TTS playback:", error);
+  }
+}
+
+function stopSpeech() {
+  if (window.currentAudio) {
+    window.currentAudio.pause();
+    window.currentAudio.currentTime = 0;
+    window.currentAudio = null;
+  }
 }
 
 // ------------------------------
@@ -125,9 +193,12 @@ readBtn.addEventListener("click", async () => {
   const pageText = await getReadableText();
   console.log("Extracted text length:", pageText.length);
   const summary = await summarizeText(pageText);
-  speakText(summary);
+  // speakText(summary);
+  // Or use OpenAI TTS:
+  speakResponse(summary);
 });
 
 stopBtn.addEventListener("click", () => {
-  stopText();
+  // stopText();
+  stopSpeech();
 });
