@@ -10,7 +10,7 @@
       padding: 0;
       background: #ffffff;
       color: #333;
-      width: 280px;
+      width: 300px;
       text-align: center;
     }
 
@@ -46,24 +46,162 @@
     }
 
     button:hover {
-      background: rgb(2, 101, 223); /* un peu plus foncé au survol */
-      /* transform: scale(1.02); */
+      background: rgb(2, 101, 223);
     }
 
     button:active {
       transform: scale(0.98);
     }
+
+    /* Loader */
+    #loader {
+      height: 8px;
+      width: 100%;
+      background: #eee;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    #loader-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #0476ff, #00c3ff, #0476ff);
+      animation: loading 2s linear infinite;
+    }
+
+    @keyframes loading {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Settings */
+    .settings {
+      margin-top: 16px;
+      text-align: left;
+      border-top: 1px solid #ccc;
+      padding-top: 12px;
+    }
+    .settings h3 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #arrow {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-left: 2px solid #333;
+      border-bottom: 2px solid #333;
+      transform: rotate(-45deg);
+      transition: transform 0.3s ease;
+    }
+
+    /* Rotation flèche quand ouvert */
+    .settings-content:not(.collapsed) + #arrow {
+      transform: rotate(135deg);
+    }
+
+    /* Contenu caché par défaut avec transition */
+    .settings-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .settings-content:not(.collapsed) {
+      max-height: 500px; /* assez pour contenir tout le contenu */
+    }
+
+    .option-section {
+      text-align: center; /* centrer voix/style */
+      margin-bottom: 16px;
+    }
+
+    .option-label {
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .option-group {
+      display: flex;
+      justify-content: center; /* centre horizontalement */
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border 0.15s ease, background 0.15s ease;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f5f5f5;
+      width: 70px;
+    }
+
+    .option img {
+      width: 30px;
+      height: 30px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+    }
+
+    .option:hover {
+      background: #e0e0e0;
+    }
+
+    .option.selected {
+      border-color: #0476ff;
+      background: #e6f0ff;
+    }
+
   </style>
 </head>
 <body>
   <header>
-    <!-- Ta bannière (logo + texte Speekit) -->
     <img src="icons/banner.png" alt="Speekit">
   </header>
 
   <main>
+    <!-- Loader -->
+    <div id="loader">
+      <div id="loader-inner"></div>
+    </div>
+
     <button id="readPage">▶ Lire la page</button>
     <button id="stop">⏹ Arrêter</button>
+
+    <!-- Settings -->
+    <div class="settings">
+      <h3 id="settingsToggle">⚙️ Settings <span id="arrow"></span></h3>
+      <div class="settings-content collapsed">
+        <div class="option-section">
+          <p class="option-label">Voix :</p>
+          <div id="voiceOptions" class="option-group"></div>
+        </div>
+
+        <div class="option-section">
+          <p class="option-label">Style :</p>
+          <div id="styleOptions" class="option-group"></div>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script type="module" src="popup.js"></script>
