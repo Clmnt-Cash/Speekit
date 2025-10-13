@@ -53,6 +53,15 @@
       transform: scale(0.98);
     }
 
+    /* Bouton stop spécifique */
+    #stopBtn {
+      background: rgb(0, 79, 175);
+    }
+
+    #stopBtn:hover {
+      background: rgb(0, 60, 133);
+    }
+
     /* Loader */
     #loader {
       height: 8px;
@@ -104,12 +113,10 @@
       transition: transform 0.3s ease;
     }
 
-    /* Rotation flèche quand ouvert */
     .settings-content:not(.collapsed) + #arrow {
       transform: rotate(135deg);
     }
 
-    /* Contenu caché par défaut avec transition */
     .settings-content {
       max-height: 0;
       overflow: hidden;
@@ -117,16 +124,15 @@
     }
 
     .settings-content:not(.collapsed) {
-      max-height: 500px; /* assez pour contenir tout le contenu */
+      max-height: 500px;
     }
 
     .option-section {
-      text-align: center; /* centrer voix/style */
+      text-align: center;
       margin-bottom: 16px;
     }
 
     .option-label {
-      font-family: "Segoe UI", Arial, sans-serif;
       font-weight: 700;
       font-size: 16px;
       margin-bottom: 6px;
@@ -134,7 +140,7 @@
 
     .option-group {
       display: flex;
-      justify-content: center; /* centre horizontalement */
+      justify-content: center;
       flex-wrap: wrap;
       gap: 12px;
     }
@@ -150,7 +156,6 @@
       transition: border 0.15s ease, background 0.15s ease;
       font-size: 14px;
       font-weight: 600;
-      font-family: "Segoe UI", Arial, sans-serif;
       background: #f5f5f5;
       width: 70px;
     }
@@ -184,8 +189,9 @@
       <div id="loader-inner"></div>
     </div>
 
-    <button id="readPage">▶ Lire la page</button>
-    <button id="stop">⏹ Arrêter</button>
+    <!-- Bouton pour démarrer ou arrêter l’enregistrement -->
+  <button id="micBtn">🎤 Speak</button>
+  <button id="stopBtn">⏹ Stop</button>
 
     <!-- Settings -->
     <div class="settings">
