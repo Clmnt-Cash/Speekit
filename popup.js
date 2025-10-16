@@ -134,9 +134,10 @@ function stopRecording() {
 // ------------------------------
 async function transcribeAudioGCP(audioBlob) {
   const arrayBuffer = await audioBlob.arrayBuffer();
-  const audioBytes = btoa(
-    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '') // base64 encode très lent pour gros fichiers
-  );
+  // const audioBytes = btoa(
+  //   new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '') // base64 encode très lent pour gros fichiers
+  // );
+  const audioBytes = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
   const body = {
     config: { encoding: "WEBM_OPUS", sampleRateHertz: 48000, languageCode: "en-US" },
@@ -254,7 +255,19 @@ async function speakResponse(text) {
     if (!response.ok) throw new Error(await response.text());
 
     const data = await response.json();
-    const audioBlob = new Blob([Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))], { type: "audio/mp3" }); // base64 decode lent pour gros fichiers
+    // const audioBlob = new Blob([Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))], { type: "audio/mp3" }); // base64 decode lent pour gros fichiers
+    function base64ToBlob(base64, type) {
+      const byteCharacters = atob(base64);
+      const byteArrays = [];
+      for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
+        const slice = byteCharacters.slice(offset, offset + 1024);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) byteNumbers[i] = slice.charCodeAt(i);
+        byteArrays.push(new Uint8Array(byteNumbers));
+      }
+      return new Blob(byteArrays, { type });
+    }
+    const audioBlob = base64ToBlob(data.audioContent, "audio/mp3");
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
     audio.play();
