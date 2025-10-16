@@ -44,9 +44,11 @@ async function getPageText() {
         const ignoreTags = ['HEADER','FOOTER','NAV','ASIDE','SCRIPT','STYLE','NOSCRIPT','META','LINK'];
         
         function isVisible(el) {
-          const style = window.getComputedStyle(el);
-          const rect = el.getBoundingClientRect();
-          return style && style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+          // const style = window.getComputedStyle(el);
+          const style = el.style;
+          // const rect = el.getBoundingClientRect(); // fonction lourde appelée une fois par élément
+          // return style && style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+          return !(style.display === 'none' || style.visibility === 'hidden');
         }
 
         function getTextFromNode(node) {
@@ -58,13 +60,17 @@ async function getPageText() {
             if (ignoreTags.includes(node.tagName)) return '';
             
             if (allowedTags.includes(node.tagName)) {
-              const t = (node.innerText || node.textContent || '').trim();
+              const t = (node.innerText || node.textContent || '').trim(); // inner text = recalcule le style -> plus lent
               if (t) text += t + '\n';
             }
           }
 
           node.childNodes.forEach(child => text += getTextFromNode(child));
-          return text;
+          // return text;
+          return text
+          .replace(/\s{2,}/g, ' ')   // espaces multiples
+          .replace(/\n{2,}/g, '\n')  // sauts de ligne multiples
+          .trim();
         }
 
         return getTextFromNode(document.body);
@@ -129,7 +135,7 @@ function stopRecording() {
 async function transcribeAudioGCP(audioBlob) {
   const arrayBuffer = await audioBlob.arrayBuffer();
   const audioBytes = btoa(
-    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '') // base64 encode très lent pour gros fichiers
   );
 
   const body = {
@@ -138,7 +144,7 @@ async function transcribeAudioGCP(audioBlob) {
   };
 
   const response = await fetch(
-    `https://speech.googleapis.com/v1/speech:recognize?key=${GCloud_TTS_API_KEY}`,
+    `https://speech.googleapis.com/v1/speech:recognize?key=${GCloud_TTS_API_KEY}`, // speech recognize attends la fin du fichier donc perte de temps
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
   );
 
@@ -172,7 +178,7 @@ async function summarizeText(webText, userQuestion) {
 
     if (availability === "unavailable") return text;
 
-    const session = await LanguageModel.create({
+    const session = await LanguageModel.create({   // LanguageModel.create() est lent (2-3s) alors qu'on pourrait réutiliser la session
       monitor(m) { m.addEventListener('downloadprogress', e => console.log(`Prompt API download: ${Math.round(e.loaded*100)}%`)); },
       expectedInputs: [{ type: "text", languages: ["en"] }],
       expectedOutputs: [{ type: "text", languages: ["en"] }]
@@ -248,7 +254,7 @@ async function speakResponse(text) {
     if (!response.ok) throw new Error(await response.text());
 
     const data = await response.json();
-    const audioBlob = new Blob([Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))], { type: "audio/mp3" });
+    const audioBlob = new Blob([Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))], { type: "audio/mp3" }); // base64 decode lent pour gros fichiers
     const audioUrl = URL.createObjectURL(audioBlob);
     const audio = new Audio(audioUrl);
     audio.play();
