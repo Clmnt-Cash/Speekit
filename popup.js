@@ -1,336 +1,203 @@
-import { GCloud_TTS_API_KEY } from './config.js';
+import { GCloud_TTS_API_KEY, VOICES, PROMPT_STYLES, STYLE_PROMPTS } from './config.js';
+import { startRecording, stopRecording, isRecording } from './microphone.js';
+import { transcribeAudio, synthesizeSpeech } from './speech.js';
+import { getPageText, summarizeText } from './textTreatment.js';
+import { initUI, showLoader, hideLoader, createOptions, playAudio, stopAudio } from './ui.js';
 
-// ------------------------------
 // Variables globales
-// ------------------------------
-let selectedVoice;
-let selectedPromptStyle;
-let loader;
-let mediaRecorder;
-let audioChunks = [];
-let recording = false;
-let timePromptToTTS = 0;
+let selectedVoice = VOICES[0].name;
+let selectedPromptStyle = PROMPT_STYLES[0].name;
 
 // ------------------------------
-// Fonction pour créer les options voix / style
+// ✅ FONCTION CALLBACK - VERSION DEBUG
 // ------------------------------
-function createOptions(containerId, options, type) {
-  const container = document.getElementById(containerId);
-  options.forEach(opt => {
-    const div = document.createElement("div");
-    div.className = "option";
-    div.innerHTML = `<img src="${opt.icon}" alt="${opt.label}" /> ${opt.label}`;
-    div.addEventListener("click", () => {
-      container.querySelectorAll(".option").forEach(o => o.classList.remove("selected"));
-      div.classList.add("selected");
-      if(type === "voice") selectedVoice = opt.name;
-      else selectedPromptStyle = opt.name;
-    });
-    container.appendChild(div);
-  });
-  container.children[0].classList.add("selected");
-}
+async function processAudio(recordedBlob, duration) {
+  console.log("\n" + "=".repeat(60));
+  console.log("🎬 [popup.js] processAudio appelé");
+  console.log("=".repeat(60));
+  console.log(`📊 Paramètres reçus:`);
+  console.log(`   - Blob size: ${recordedBlob.size} bytes`);
+  console.log(`   - Blob type: ${recordedBlob.type}`);
+  console.log(`   - Duration: ${duration}ms`);
 
-// ------------------------------
-// Récupérer le texte de la page active
-// ------------------------------
-async function getPageText() {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const result = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => {
-        const allowedTags = ['P','DIV','SPAN','H1','H2','H3','H4','H5','H6','LI','BLOCKQUOTE','FIGCAPTION'];
-        const ignoreTags = ['HEADER','FOOTER','NAV','ASIDE','SCRIPT','STYLE','NOSCRIPT','META','LINK'];
-        
-        function isVisible(el) {
-          // const style = window.getComputedStyle(el);
-          const style = el.style;
-          // const rect = el.getBoundingClientRect(); // fonction lourde appelée une fois par élément
-          // return style && style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
-          return !(style.display === 'none' || style.visibility === 'hidden');
-        }
+    // ========== ÉTAPE 1 : Vérification Blob ==========
+    console.log("\n📦 ÉTAPE 1 : Vérification Audio Blob");
+    console.log("─".repeat(60));
 
-        function getTextFromNode(node) {
-          let text = '';
-          if (!node) return text;
+    if (!recordedBlob) {
+      throw new Error("recordedBlob est undefined");
+    }
 
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            if (!isVisible(node)) return '';
-            if (ignoreTags.includes(node.tagName)) return '';
-            
-            if (allowedTags.includes(node.tagName)) {
-              const t = (node.innerText || node.textContent || '').trim(); // inner text = recalcule le style -> plus lent
-              if (t) text += t + '\n';
-            }
-          }
+    if (recordedBlob.size === 0) {
+      throw new Error("recordedBlob est vide (0 bytes)");
+    }
 
-          node.childNodes.forEach(child => text += getTextFromNode(child));
-          // return text;
-          return text
-          .replace(/\s{2,}/g, ' ')   // espaces multiples
-          .replace(/\n{2,}/g, '\n')  // sauts de ligne multiples
-          .trim();
-        }
+    console.log(`✅ Blob valide : ${recordedBlob.size} bytes`);
 
-        return getTextFromNode(document.body);
-      }
-    });
+    // ========== ÉTAPE 2 : Transcription STT ==========
+    console.log("\n🎙️ ÉTAPE 2 : Transcription STT");
+    console.log("─".repeat(60));
+    const startSTT = performance.now();
 
-    return result[0]?.result || '';
-  } catch (err) {
-    console.error("Erreur récupération texte page:", err);
-    return '';
+    const userQuestion = await transcribeAudio(recordedBlob);
+
+    const durationSTT = (performance.now() - startSTT).toFixed(0);
+    console.log(`✅ Transcription terminée en ${durationSTT}ms`);
+    console.log(`   Texte : "${userQuestion}"`);
+
+    if (!userQuestion || userQuestion.trim() === '') {
+      console.error("❌ Transcription vide");
+      alert("No speech detected. Please try again.");
+      return;
+    }
+
+    // ========== ÉTAPE 3 : Extraction texte ==========
+    console.log("\n📄 ÉTAPE 3 : Extraction texte page");
+    console.log("─".repeat(60));
+    const startExtract = performance.now();
+
+    const pageText = await getPageText();
+
+    const durationExtract = (performance.now() - startExtract).toFixed(0);
+    console.log(`✅ Extraction terminée en ${durationExtract}ms`);
+    console.log(`   Longueur : ${pageText.length} caractères`);
+    console.log(`   Aperçu : "${pageText.substring(0, 100)}..."`);
+
+    // ========== ÉTAPE 4 : LLM ==========
+    console.log("\n🤖 ÉTAPE 4 : Génération réponse LLM");
+    console.log("─".repeat(60));
+    const startLLM = performance.now();
+
+    const summary = await summarizeText(pageText, userQuestion, STYLE_PROMPTS, selectedPromptStyle);
+
+    const durationLLM = (performance.now() - startLLM).toFixed(0);
+    console.log(`✅ Réponse LLM en ${durationLLM}ms`);
+    console.log(`   Longueur : ${summary.length} caractères`);
+
+    if (!summary || summary.trim() === '') {
+      console.error("❌ Réponse LLM vide");
+      alert("Could not generate a response.");
+      return;
+    }
+
+    // ========== ÉTAPE 5 : TTS ==========
+    console.log("\n🔊 ÉTAPE 5 : Text-to-Speech");
+    console.log("─".repeat(60));
+
+    showLoader();
+    const startTTS = performance.now();
+
+    const ttsBlob = await synthesizeSpeech(summary, selectedVoice);
+    await playAudio(ttsBlob);
+
+    const durationTTS = (performance.now() - startTTS).toFixed(0);
+    console.log(`✅ TTS terminé en ${durationTTS}ms`);
+
+    // ========== RÉSUMÉ ==========
+    console.log("\n" + "=".repeat(60));
+    console.log("🎉 TRAITEMENT TERMINÉ");
+    console.log("=".repeat(60));
+    console.log(`⏱️ Temps total : ${(parseFloat(durationSTT) + parseFloat(durationExtract) + parseFloat(durationLLM) + parseFloat(durationTTS)).toFixed(0)}ms`);
+    console.log("=".repeat(60) + "\n");
+
+  } catch (error) {
+    console.log("\n" + "!".repeat(60));
+    console.error("❌ ERREUR CRITIQUE");
+    console.log("!".repeat(60));
+    console.error("Type :", error.name);
+    console.error("Message :", error.message);
+    console.error("Stack :", error.stack);
+    console.log("!".repeat(60) + "\n");
+
+    hideLoader();
+    alert(`Error: ${error.message}`);
   }
 }
 
 // ------------------------------
-// Enregistrement audio
+// Gestion boutons
 // ------------------------------
-async function startRecording(micBtn) {
-  if (recording) return;
-  recording = true;
-  micBtn.textContent = "⏹ Stop";
+async function handleMicButton(micBtn) {
+  console.log("🎤 [popup.js] Bouton micro cliqué");
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
+  if (!isRecording()) {
+    console.log("▶️ Démarrage enregistrement...");
+    micBtn.textContent = "⏹ Stop";
 
-    mediaRecorder.ondataavailable = e => {
-      if (e.data.size > 0) audioChunks.push(e.data);
-    };
-
-    mediaRecorder.onstop = async () => {
+    try {
+      // ✅ Passer processAudio comme callback
+      console.log("📞 Appel startRecording avec callback processAudio");
+      await startRecording(processAudio);
+      console.log("✅ startRecording appelé avec succès");
+    } catch (err) {
+      console.error("❌ Erreur startRecording:", err);
       micBtn.textContent = "🎤 Speak";
-      recording = false;
-
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      const userQuestion = await transcribeAudioGCP(audioBlob);
-      console.log("Texte micro :", userQuestion);
-
-      const pageText = await getPageText();
-
-      const summary = await summarizeText(pageText, userQuestion);
-      await speakResponse(summary);
-    };
-
-    mediaRecorder.start();
-    console.log("Enregistrement micro démarré...");
-  } catch (err) {
-    console.error("Erreur accès micro :", err);
-    recording = false;
+      alert("Microphone access denied");
+    }
+  } else {
+    console.log("⏹️ Arrêt enregistrement...");
+    stopRecording();
     micBtn.textContent = "🎤 Speak";
   }
 }
 
-function stopRecording() {
-  if (!recording || !mediaRecorder) return;
-  mediaRecorder.stop();
+function handleStopButton() {
+  console.log("⏹️ [popup.js] Bouton stop cliqué");
+  stopRecording();
+  stopAudio();
 }
 
-// ------------------------------
-// Transcription Google Cloud Speech-to-Text
-// ------------------------------
-async function transcribeAudioGCP(audioBlob) {
-  const arrayBuffer = await audioBlob.arrayBuffer();
-  // const audioBytes = btoa(
-  //   new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '') // base64 encode très lent pour gros fichiers
-  // );
-  const audioBytes = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-  const body = {
-    config: { encoding: "WEBM_OPUS", sampleRateHertz: 48000, languageCode: "en-US" },
-    audio: { content: audioBytes }
-  };
-
-  const response = await fetch(
-    `https://speech.googleapis.com/v1/speech:recognize?key=${GCloud_TTS_API_KEY}`, // speech recognize attends la fin du fichier donc perte de temps
-    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
-  );
-
-  if (!response.ok) {
-    console.error("Erreur transcription GCP :", await response.text());
-    return '';
-  }
-
-  const data = await response.json();
-  if (data.results && data.results[0]) return data.results[0].alternatives[0].transcript || '';
-  return '';
-}
-
-// ------------------------------
-// Résumé via LanguageModel
-// ------------------------------
-async function summarizeText(webText, userQuestion) {
-  try {
-    if (typeof LanguageModel === "undefined" || !LanguageModel.availability) {
-      console.warn("Prompt API not available");
-      return webText;
-    }
-
-    const MAX_INPUT_LENGTH = 10000;
-    if (webText.length > MAX_INPUT_LENGTH) webText = webText.substring(0, MAX_INPUT_LENGTH);
-
-    const availability = await LanguageModel.availability({
-      expectedInputs: [{ type: "text", languages: ["en"] }],
-      expectedOutputs: [{ type: "text", languages: ["en"] }]
-    });
-
-    if (availability === "unavailable") return text;
-
-    const session = await LanguageModel.create({   // LanguageModel.create() est lent (2-3s) alors qu'on pourrait réutiliser la session
-      monitor(m) { m.addEventListener('downloadprogress', e => console.log(`Prompt API download: ${Math.round(e.loaded*100)}%`)); },
-      expectedInputs: [{ type: "text", languages: ["en"] }],
-      expectedOutputs: [{ type: "text", languages: ["en"] }]
-    });
-
-    const stylePrompts = {
-      friendly: `
-        Respond in a warm and friendly tone.
-        Write as if you were explaining it naturally to a friend over coffee.
-        Use clear, conversational language with short, easy-to-follow sentences.
-      `,
-      casual: `
-        Respond in a relaxed and informal way.
-        Use everyday English, simple words, and a smooth flow — like telling a story.
-        Avoid robotic or academic phrasing.
-      `,
-      formal: `
-        Provide a concise and professional answer.
-        Maintain a neutral and informative tone, as if writing a corporate report.
-        Ensure logical structure, clarity, and smooth transitions between sentences.
-      `,
-      funny: `
-        Respond in a light and humorous way.
-        Include mild jokes, wordplay, or witty remarks while keeping the meaning accurate.
-        Keep it entertaining but not exaggerated or distracting.
-      `
-    };
-
-    const prompt = `
-      You are a natural-sounding AI Web agent. Answer the following question clearly and naturally: ${userQuestion}.
-      ${stylePrompts[selectedPromptStyle]}
-
-      Base your answer strictly on the information provided below. Do not add, assume, or invent anything beyond what is given.
-
-      Text from the web page:
-      """${webText}"""
-    `;
-
-    console.log(webText);
-
-    let currentTime = Date.now();
-    const summary = await session.prompt(prompt);
-    timePromptToTTS = Date.now();
-    console.log(`LLM Latency: ${Date.now() - currentTime} ms`);
-    return summary || text;
-  } catch (err) {
-    console.error("Error using Prompt API:", err);
-    return text;
+function handleOptionSelect(value, type) {
+  if (type === "voice") {
+    selectedVoice = value;
+    console.log("✅ Voice sélectionnée:", value);
+  } else {
+    selectedPromptStyle = value;
+    console.log("✅ Style sélectionné:", value);
   }
 }
 
 // ------------------------------
-// Text-to-Speech Google TTS
-// ------------------------------
-async function speakResponse(text) {
-  if (!text?.trim()) return;
-  loader.style.display = "block";
-
-  try {
-    if (!GCloud_TTS_API_KEY) { console.error("Missing GCloud_TTS_API_KEY"); loader.style.display = "none"; return; }
-
-    const requestBody = {
-      input: { text },
-      voice: { languageCode: "en-US", name: selectedVoice },
-      audioConfig: { audioEncoding: "MP3", speakingRate: 1.0, pitch: 0.0 }
-    };
-
-    const response = await fetch(
-      `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GCloud_TTS_API_KEY}`,
-      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestBody) }
-    );
-
-    if (!response.ok) throw new Error(await response.text());
-
-    const data = await response.json();
-    // const audioBlob = new Blob([Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))], { type: "audio/mp3" }); // base64 decode lent pour gros fichiers
-    function base64ToBlob(base64, type) {
-      const byteCharacters = atob(base64);
-      const byteArrays = [];
-      for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
-        const slice = byteCharacters.slice(offset, offset + 1024);
-        const byteNumbers = new Array(slice.length);
-        for (let i = 0; i < slice.length; i++) byteNumbers[i] = slice.charCodeAt(i);
-        byteArrays.push(new Uint8Array(byteNumbers));
-      }
-      return new Blob(byteArrays, { type });
-    }
-    const audioBlob = base64ToBlob(data.audioContent, "audio/mp3");
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    audio.play();
-    window.currentAudio = audio;
-    audio.onended = () => loader.style.display = "none";
-  } catch (err) {
-    console.error("Error during Google TTS:", err);
-    loader.style.display = "none";
-  }
-}
-
-function stopSpeech() {
-  if (window.currentAudio) {
-    window.currentAudio.pause();
-    window.currentAudio.currentTime = 0;
-    window.currentAudio = null;
-  }
-  loader.style.display = "none";
-}
-
-// ------------------------------
-// Initialisation du DOM après chargement
+// Initialisation
 // ------------------------------
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("🚀 [popup.js] DOMContentLoaded");
+
   const micBtn = document.getElementById("micBtn");
   const stopBtn = document.getElementById("stopBtn");
-  loader = document.getElementById("loader");
+  const loaderElement = document.getElementById("loader");
 
-  // Options voix / style
-  const voices = [
-    { name: "en-US-Wavenet-D", label: "Male 1", icon: "icons/man.png" },
-    { name: "en-US-Wavenet-F", label: "Female 1", icon: "icons/woman.png" },
-    { name: "en-US-Wavenet-C", label: "Male 2", icon: "icons/man.png" },
-    { name: "en-US-Wavenet-E", label: "Female 2", icon: "icons/woman.png" }
-  ];
-
-  const promptStyles = [
-    { name: "friendly", label: "Friendly", icon: "icons/friendly.png" },
-    { name: "casual", label: "Casual", icon: "icons/casual.png" },
-    { name: "formal", label: "Formal", icon: "icons/formal.png" },
-    { name: "funny", label: "Funny", icon: "icons/funny.png" }
-  ];
-
-  selectedVoice = voices[0].name;
-  selectedPromptStyle = promptStyles[0].name;
-
-  createOptions("voiceOptions", voices, "voice");
-  createOptions("styleOptions", promptStyles, "style");
-
-  micBtn.addEventListener("click", () => {
-    if (!recording) startRecording(micBtn);
-    else stopRecording();
+  console.log("📦 Elements trouvés:", {
+    micBtn: !!micBtn,
+    stopBtn: !!stopBtn,
+    loader: !!loaderElement
   });
 
-  stopBtn.addEventListener("click", stopRecording);
+  // Initialiser UI
+  initUI(loaderElement);
+
+  // Créer options
+  createOptions("voiceOptions", VOICES, "voice", handleOptionSelect);
+  createOptions("styleOptions", PROMPT_STYLES, "style", handleOptionSelect);
+
+  // Event listeners
+  micBtn.addEventListener("click", () => handleMicButton(micBtn));
+  stopBtn.addEventListener("click", handleStopButton);
 
   // Settings toggle
   const settingsToggle = document.getElementById("settingsToggle");
   const settingsContent = document.querySelector(".settings-content");
   const arrow = document.getElementById("arrow");
 
-  settingsToggle.addEventListener("click", () => {
-    settingsContent.classList.toggle("collapsed");
-    arrow.style.transform = settingsContent.classList.contains("collapsed") ? "rotate(-45deg)" : "rotate(135deg)";
-  });
+  if (settingsToggle && settingsContent && arrow) {
+    settingsToggle.addEventListener("click", () => {
+      settingsContent.classList.toggle("collapsed");
+      arrow.style.transform = settingsContent.classList.contains("collapsed")
+        ? "rotate(-45deg)"
+        : "rotate(135deg)";
+    });
+  }
+
+  console.log("✅ Extension initialisée");
 });
