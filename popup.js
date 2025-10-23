@@ -2,6 +2,7 @@ import { GCloud_TTS_API_KEY, VOICES, PROMPT_STYLES, STYLE_PROMPTS } from './conf
 import { startRecording, stopRecording, isRecording } from './microphone.js';
 import { transcribeAudio, synthesizeSpeech } from './speech.js';
 import { getPageText, summarizeText } from './textTreatment.js';
+import { findRelevantContent } from './textFiltering.js';
 import { initUI, showLoader, hideLoader, createOptions, playAudio, stopAudio } from './ui.js';
 
 // Variables globales
@@ -53,23 +54,64 @@ async function processAudio(recordedBlob, duration) {
     }
 
     // ========== ÉTAPE 3 : Extraction texte ==========
-    console.log("\n📄 ÉTAPE 3 : Extraction texte page");
+    // console.log("\n📄 ÉTAPE 3 : Extraction texte page");
+    // console.log("─".repeat(60));
+    // const startExtract = performance.now();
+
+    // const pageText = await getPageText();
+
+    // const durationExtract = (performance.now() - startExtract).toFixed(0);
+    // console.log(`✅ Extraction terminée en ${durationExtract}ms`);
+    // console.log(`   Longueur : ${pageText.length} caractères`);
+    // console.log(`   Aperçu : "${pageText.substring(0, 100)}..."`);
+    console.log("\n📄 ÉTAPE 3 : Extraction du texte de la page");
     console.log("─".repeat(60));
     const startExtract = performance.now();
 
-    const pageText = await getPageText();
+    let pageText = await getPageText();
+
+    // ✅ FALLBACK si extraction vide
+    if (!pageText || pageText.trim().length < 100) {
+      console.warn("   ⚠️ Extraction principale a échoué, essai méthode simple...");
+      
+      // Importer la méthode simple
+      const { getPageTextSimple } = await import('./textTreatment.js');
+      pageText = await getPageTextSimple();
+      
+      if (!pageText || pageText.trim().length < 100) {
+        console.error("   ❌ Les deux méthodes ont échoué !");
+        alert("Could not extract text from page.");
+        return;
+      }
+      
+      console.log("   ✅ Méthode simple a réussi !");
+    }
 
     const durationExtract = (performance.now() - startExtract).toFixed(0);
-    console.log(`✅ Extraction terminée en ${durationExtract}ms`);
-    console.log(`   Longueur : ${pageText.length} caractères`);
+    console.log(`✅ Extraction: ${pageText.length} chars (${durationExtract}ms)`);
     console.log(`   Aperçu : "${pageText.substring(0, 100)}..."`);
+
+        // ========== ÉTAPE 3.5 : Filtrage intelligent ==========
+    console.log("\n🎯 ÉTAPE 3.5 : Filtrage du contenu pertinent");
+    console.log("─".repeat(60));
+    const startFilter = performance.now();
+
+    const relevantText = findRelevantContent(pageText, userQuestion, 1500);
+
+    const durationFilter = (performance.now() - startFilter).toFixed(0);
+    const reductionPercent = ((1 - relevantText.length / pageText.length) * 100).toFixed(1);
+    console.log(`✅ Filtrage terminé en ${durationFilter}ms`);
+    console.log(`   Longueur avant : ${pageText.length} chars`);
+    console.log(`   Longueur après : ${relevantText.length} chars`);
+    console.log(`   Réduction : ${reductionPercent}%`);
+    console.log(`   Aperçu filtré : "${relevantText.substring(0, 100)}..."`);
 
     // ========== ÉTAPE 4 : LLM ==========
     console.log("\n🤖 ÉTAPE 4 : Génération réponse LLM");
     console.log("─".repeat(60));
     const startLLM = performance.now();
 
-    const summary = await summarizeText(pageText, userQuestion, STYLE_PROMPTS, selectedPromptStyle);
+    const summary = await summarizeText(relevantText, userQuestion, STYLE_PROMPTS, selectedPromptStyle);
 
     const durationLLM = (performance.now() - startLLM).toFixed(0);
     console.log(`✅ Réponse LLM en ${durationLLM}ms`);
@@ -98,7 +140,16 @@ async function processAudio(recordedBlob, duration) {
     console.log("\n" + "=".repeat(60));
     console.log("🎉 TRAITEMENT TERMINÉ");
     console.log("=".repeat(60));
-    console.log(`⏱️ Temps total : ${(parseFloat(durationSTT) + parseFloat(durationExtract) + parseFloat(durationLLM) + parseFloat(durationTTS)).toFixed(0)}ms`);
+    console.log("⏱️  Temps total :");
+    console.log(`   STT      : ${durationSTT}ms`);
+    console.log(`   Extract  : ${durationExtract}ms`);
+    console.log(`   Filter   : ${durationFilter}ms`);
+    console.log(`   LLM      : ${durationLLM}ms`);
+    console.log(`   TTS      : ${durationTTS}ms`);
+    const totalTime = parseFloat(durationSTT) + parseFloat(durationExtract) + 
+                      parseFloat(durationFilter) + parseFloat(durationLLM) + 
+                      parseFloat(durationTTS);
+    console.log(`   TOTAL    : ${totalTime.toFixed(0)}ms`);
     console.log("=".repeat(60) + "\n");
 
   } catch (error) {

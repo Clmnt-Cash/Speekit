@@ -1,49 +1,258 @@
 // ------------------------------
 // Extraction du texte de la page
 // ------------------------------
+// export async function getPageText() {
+//     try {
+//         console.log("   🔍 Extraction texte de la page...");
+
+//         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+//         const result = await chrome.scripting.executeScript({
+//             target: { tabId: tab.id },
+//             func: extractTextFromPage
+//         });
+
+//         let text = result[0]?.result || '';
+//         console.log(`   📊 Texte brut extrait: ${text.length} caractères`);
+
+//         // ✅ LIMITATION STRICTE : 1500 caractères MAX
+//         // const MAX_CHARS = 1500;
+//         // if (text.length > MAX_CHARS) {
+//         //     console.warn(`   ⚠️ TRONCATURE: ${text.length} → ${MAX_CHARS} chars`);
+
+//         //     // Tronquer par phrases pour garder du sens
+//         //     const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
+//         //     let truncated = '';
+
+//         //     for (const sentence of sentences) {
+//         //         if (truncated.length + sentence.length > MAX_CHARS) break;
+//         //         truncated += sentence;
+//         //     }
+
+//         //     // Si aucune phrase complète, couper brutalement
+//         //     if (truncated.length < 100) {
+//         //         truncated = text.substring(0, MAX_CHARS);
+//         //     }
+
+//         //     text = truncated;
+//         // }
+
+//         console.log(`   ✅ Texte final: ${text.length} caractères`);
+//         return text;
+
+//     } catch (err) {
+//         console.error("❌ Erreur récupération texte page:", err);
+//         throw err;
+//     }
+// }
 export async function getPageText() {
-    try {
-        console.log("   🔍 Extraction texte de la page...");
+  try {
+    console.log("   🔍 Extraction texte de la page...");
+    
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: extractCleanTextDebug
+    });
 
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-        const result = await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: extractTextFromPage
-        });
-
-        let text = result[0]?.result || '';
-        console.log(`   📊 Texte brut extrait: ${text.length} caractères`);
-
-        // ✅ LIMITATION STRICTE : 1500 caractères MAX
-        const MAX_CHARS = 1500;
-        if (text.length > MAX_CHARS) {
-            console.warn(`   ⚠️ TRONCATURE: ${text.length} → ${MAX_CHARS} chars`);
-
-            // Tronquer par phrases pour garder du sens
-            const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-            let truncated = '';
-
-            for (const sentence of sentences) {
-                if (truncated.length + sentence.length > MAX_CHARS) break;
-                truncated += sentence;
-            }
-
-            // Si aucune phrase complète, couper brutalement
-            if (truncated.length < 100) {
-                truncated = text.substring(0, MAX_CHARS);
-            }
-
-            text = truncated;
-        }
-
-        console.log(`   ✅ Texte final: ${text.length} caractères`);
-        return text;
-
-    } catch (err) {
-        console.error("❌ Erreur récupération texte page:", err);
-        throw err;
+    let text = result[0]?.result || '';
+    console.log(`   📊 Texte brut extrait: ${text.length} caractères`);
+    console.log(`   Aperçu brut: "${text.substring(0, 200)}..."`);
+    
+    if (text.length === 0) {
+      console.error("   ❌ Aucun texte extrait de la page !");
+      return '';
     }
+    
+    // Nettoyage léger côté popup
+    text = lightCleanup(text);
+    console.log(`   ✅ Après nettoyage léger: ${text.length} caractères`);
+    console.log(`   Aperçu nettoyé: "${text.substring(0, 200)}..."`);
+    
+    return text;
+
+  } catch (err) {
+    console.error("❌ Erreur récupération texte page:", err);
+    console.error("   Stack:", err.stack);
+    throw err;
+  }
+}
+
+function extractCleanTextDebug() {
+  console.log("[PAGE] Début extraction...");
+  
+  // Tags de contenu
+  const contentTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'ARTICLE', 'SECTION'];
+  
+  // Tags à ignorer
+  const ignoreTags = ['HEADER', 'FOOTER', 'NAV', 'ASIDE', 'SCRIPT', 'STYLE', 'NOSCRIPT', 'META', 'LINK'];
+
+  // Sélecteurs à ignorer (version SIMPLIFIÉE)
+  const ignoreSelectors = [
+    'nav', 'header', 'footer', 'aside',
+    '[role="navigation"]', '[role="banner"]', '[role="contentinfo"]',
+    '.toc', '#toc', '.navigation', '.menu'
+  ];
+
+  function isVisible(el) {
+    const style = window.getComputedStyle(el);
+    return style && style.display !== 'none' && style.visibility !== 'hidden';
+  }
+
+  function shouldIgnore(el) {
+    // Ignorer par tag
+    if (ignoreTags.includes(el.tagName)) {
+      return true;
+    }
+    
+    // Ignorer par sélecteur (SIMPLIFIÉ - juste matches, pas closest)
+    for (const selector of ignoreSelectors) {
+      try {
+        if (el.matches && el.matches(selector)) {
+          return true;
+        }
+      } catch (e) {}
+    }
+    
+    return false;
+  }
+
+  // Trouver le contenu principal
+  let mainElement = 
+    document.querySelector('main') ||
+    document.querySelector('article') ||
+    document.querySelector('[role="main"]');
+
+  console.log("[PAGE] Main element:", mainElement ? mainElement.tagName : 'null');
+
+  // Si pas de main, utiliser body
+  if (!mainElement) {
+    console.log("[PAGE] Pas de main, utilisation de body");
+    mainElement = document.body;
+  }
+
+  // Collecter les éléments
+  const selector = contentTags.map(t => t.toLowerCase()).join(',');
+  console.log("[PAGE] Sélecteur:", selector);
+  
+  const elements = mainElement.querySelectorAll(selector);
+  console.log("[PAGE] Éléments trouvés:", elements.length);
+
+  let extractedText = '';
+  let validElements = 0;
+  let ignoredInvisible = 0;
+  let ignoredBySelector = 0;
+  let ignoredTooShort = 0;
+
+  elements.forEach((el, index) => {
+    // Debug pour les 5 premiers éléments
+    if (index < 5) {
+      console.log(`[PAGE] Element ${index}:`, el.tagName, el.textContent.substring(0, 50));
+    }
+    
+    if (!isVisible(el)) {
+      ignoredInvisible++;
+      return;
+    }
+    
+    if (shouldIgnore(el)) {
+      ignoredBySelector++;
+      return;
+    }
+    
+    const text = (el.textContent || '').trim();
+    
+    if (text.length < 20) {
+      ignoredTooShort++;
+      return;
+    }
+    
+    validElements++;
+    extractedText += text + '\n\n';
+  });
+
+  console.log("[PAGE] Statistiques:");
+  console.log(`  - Éléments valides: ${validElements}`);
+  console.log(`  - Ignorés (invisibles): ${ignoredInvisible}`);
+  console.log(`  - Ignorés (sélecteurs): ${ignoredBySelector}`);
+  console.log(`  - Ignorés (trop courts): ${ignoredTooShort}`);
+  console.log(`  - Texte extrait: ${extractedText.length} chars`);
+
+  // Nettoyage minimal
+  const cleaned = extractedText
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  console.log("[PAGE] Après nettoyage:", cleaned.length, "chars");
+  
+  return cleaned;
+}
+
+// ------------------------------
+// ✅ Nettoyage final côté popup
+// ------------------------------
+function lightCleanup(text) {
+  console.log("   🧹 Nettoyage léger...");
+  
+  // Seulement les patterns les plus évidents
+  const simplePatterns = [
+    /Main menu/gi,
+    /Personal tools/gi,
+    /Contents hide/gi,
+    /Toggle .+ subsection/gi,
+    /\[\d+\]/g,  // Références [1], [2]
+  ];
+
+  let cleaned = text;
+  
+  for (const pattern of simplePatterns) {
+    const before = cleaned.length;
+    cleaned = cleaned.replace(pattern, '');
+    const removed = before - cleaned.length;
+    if (removed > 0) {
+      console.log(`     - Pattern ${pattern} supprimé: ${removed} chars`);
+    }
+  }
+
+  // Nettoyer espaces
+  cleaned = cleaned
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return cleaned;
+}
+
+export async function getPageTextSimple() {
+  try {
+    console.log("   🔍 Extraction SIMPLE...");
+    
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        // Version ultra-basique : juste les paragraphes
+        const paragraphs = Array.from(document.querySelectorAll('p, h1, h2, h3'));
+        
+        return paragraphs
+          .map(p => p.textContent.trim())
+          .filter(text => text.length > 30)
+          .join('\n\n');
+      }
+    });
+
+    const text = result[0]?.result || '';
+    console.log(`   ✅ Texte simple extrait: ${text.length} chars`);
+    
+    return text;
+
+  } catch (err) {
+    console.error("❌ Erreur extraction simple:", err);
+    return '';
+  }
 }
 
 // Fonction exécutée dans le contexte de la page
