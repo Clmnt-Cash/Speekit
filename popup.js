@@ -3,7 +3,7 @@ import { startRecording, stopRecording, isRecording } from './microphone.js';
 import { transcribeAudio, synthesizeSpeech } from './speech.js';
 import { getPageText, summarizeText } from './textTreatment.js';
 import { findRelevantContent } from './textFiltering.js';
-import { initUI, showLoader, hideLoader, createOptions, playAudio, stopAudio } from './ui.js';
+import { initUI, createOptions, playAudio, stopAudio, showProcessingIndicator, hideProcessingIndicator, resetUI } from './ui.js';
 
 // Variables globales
 let selectedVoice = VOICES[0].name;
@@ -40,7 +40,8 @@ async function processAudio(recordedBlob, duration) {
     console.log("\n🎙️ ÉTAPE 2 : Transcription STT");
     console.log("─".repeat(60));
     const startSTT = performance.now();
-
+    
+    showProcessingIndicator();
     const userQuestion = await transcribeAudio(recordedBlob);
 
     const durationSTT = (performance.now() - startSTT).toFixed(0);
@@ -104,7 +105,7 @@ async function processAudio(recordedBlob, duration) {
     console.log(`   Longueur avant : ${pageText.length} chars`);
     console.log(`   Longueur après : ${relevantText.length} chars`);
     console.log(`   Réduction : ${reductionPercent}%`);
-    console.log(`   Aperçu filtré : "${relevantText.substring(0, 100)}..."`);
+    console.log(`   Aperçu filtré : "${relevantText.substring(0, 500)}..."`);
 
     // ========== ÉTAPE 4 : LLM ==========
     console.log("\n🤖 ÉTAPE 4 : Génération réponse LLM");
@@ -127,7 +128,6 @@ async function processAudio(recordedBlob, duration) {
     console.log("\n🔊 ÉTAPE 5 : Text-to-Speech");
     console.log("─".repeat(60));
 
-    showLoader();
     const startTTS = performance.now();
 
     const ttsBlob = await synthesizeSpeech(summary, selectedVoice);
@@ -161,7 +161,8 @@ async function processAudio(recordedBlob, duration) {
     console.error("Stack :", error.stack);
     console.log("!".repeat(60) + "\n");
 
-    hideLoader();
+    hideProcessingIndicator();
+    resetUI();
     alert(`Error: ${error.message}`);
   }
 }
@@ -197,6 +198,7 @@ function handleStopButton() {
   console.log("⏹️ [popup.js] Bouton stop cliqué");
   stopRecording();
   stopAudio();
+  resetUI();  // Reset all UI elements
 }
 
 function handleOptionSelect(value, type) {
@@ -217,16 +219,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const micBtn = document.getElementById("micBtn");
   const stopBtn = document.getElementById("stopBtn");
-  const loaderElement = document.getElementById("loader");
 
   console.log("📦 Elements trouvés:", {
     micBtn: !!micBtn,
-    stopBtn: !!stopBtn,
-    loader: !!loaderElement
+    stopBtn: !!stopBtn
   });
 
   // Initialiser UI
-  initUI(loaderElement);
+  initUI();
 
   // Créer options
   createOptions("voiceOptions", VOICES, "voice", handleOptionSelect);

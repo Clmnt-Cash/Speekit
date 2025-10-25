@@ -1,16 +1,7 @@
-let loader = null;
 let currentAudio = null;
 
-export function initUI(loaderElement) {
-    loader = loaderElement;
-}
-
-export function showLoader() {
-    if (loader) loader.style.display = "block";
-}
-
-export function hideLoader() {
-    if (loader) loader.style.display = "none";
+export function initUI() {
+    // Initialize any UI elements if needed
 }
 
 export function createOptions(containerId, options, type, onSelectCallback) {
@@ -36,14 +27,66 @@ export function createOptions(containerId, options, type, onSelectCallback) {
     container.children[0].classList.add("selected");
 }
 
+export function updateTranscriptionText(text) {
+    const transcriptionElement = document.getElementById('transcriptionText');
+    if (transcriptionElement) {
+        transcriptionElement.textContent = text;
+    }
+}
+
+export function showWaveAnimation() {
+    const waveContainer = document.querySelector('.wave-container');
+    if (waveContainer) {
+        waveContainer.classList.add('speaking');
+    }
+}
+
+export function hideWaveAnimation() {
+    const waveContainer = document.querySelector('.wave-container');
+    if (waveContainer) {
+        waveContainer.classList.remove('speaking');
+    }
+}
+
+export function showProcessingIndicator() {
+    const processingIndicator = document.querySelector('.processing-indicator');
+    if (processingIndicator) {
+        processingIndicator.classList.add('active');
+    }
+}
+
+export function hideProcessingIndicator() {
+    const processingIndicator = document.querySelector('.processing-indicator');
+    if (processingIndicator) {
+        processingIndicator.classList.remove('active');
+    }
+}
+
+export function resetUI() {
+    // Hide all animations
+    hideWaveAnimation();
+    hideProcessingIndicator();
+    
+    // Clear the transcription text
+    const transcriptionText = document.getElementById('transcriptionText');
+    if (transcriptionText) {
+        transcriptionText.textContent = '';
+    }
+}
+
 export async function playAudio(audioBlob) {
     stopAudio(); // Arrêter l'audio précédent
+    hideProcessingIndicator();
 
     const audioUrl = URL.createObjectURL(audioBlob);
     currentAudio = new Audio(audioUrl);
 
+    currentAudio.onplay = () => {
+        showWaveAnimation();
+    };
+
     currentAudio.onended = () => {
-        hideLoader();
+        hideWaveAnimation();
         URL.revokeObjectURL(audioUrl);
     };
 
@@ -56,5 +99,6 @@ export function stopAudio() {
         currentAudio.currentTime = 0;
         currentAudio = null;
     }
-    hideLoader();
+    hideWaveAnimation();
+    hideProcessingIndicator();
 }

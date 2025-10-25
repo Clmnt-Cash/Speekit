@@ -1,4 +1,5 @@
 import { GCloud_TTS_API_KEY } from './config.js';
+import { updateTranscriptionText } from './ui.js';
 
 // ------------------------------
 // Speech-to-Text (Google Cloud)
@@ -100,6 +101,9 @@ export async function transcribeAudio(audioBlob) {
 
             console.log(`   ✅ Transcription retenue: "${transcript}"`);
             console.log(`   📊 Confiance: ${(confidence * 100).toFixed(1)}%`);
+
+            // Update the UI with the transcribed text
+            updateTranscriptionText(transcript);
 
             // ⚠️ Avertir si confiance faible
             if (confidence < 0.7) {

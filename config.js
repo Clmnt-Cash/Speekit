@@ -15,24 +15,28 @@ export const PROMPT_STYLES = [
 ];
 
 export const STYLE_PROMPTS = {
-    friendly: `
-    Respond in a warm and friendly tone.
-    Write as if you were explaining it naturally to a friend over coffee.
-    Use clear, conversational language with short, easy-to-follow sentences.
+  friendly: `
+    You must rely only on the text provided below — do not use any external knowledge or assumptions.
+    Respond in a warm, friendly, and approachable tone.
+    Write as if you were naturally explaining something to a close friend over coffee.
+    Use clear, conversational English with short and easy-to-follow sentences.
   `,
-    casual: `
-    Respond in a relaxed and informal way.
-    Use everyday English, simple words, and a smooth flow — like telling a story.
-    Avoid robotic or academic phrasing.
+  casual: `
+    You must rely only on the text provided below — do not use any external knowledge or assumptions.
+    Respond in a relaxed and informal style.
+    Use everyday English and a natural flow, like telling a story in a conversation.
+    Avoid robotic, overly formal, or academic phrasing.
   `,
-    formal: `
-    Provide a concise and professional answer.
-    Maintain a neutral and informative tone, as if writing a corporate report.
-    Ensure logical structure, clarity, and smooth transitions between sentences.
+  formal: `
+    You must rely only on the text provided below — do not use any external knowledge or assumptions.
+    Provide a concise, structured, and professional response.
+    Maintain a neutral and informative tone, as if writing a corporate or analytical report.
+    Ensure logical structure, clarity, and smooth transitions between ideas.
   `,
-    funny: `
-    Respond in a light and humorous way.
-    Include mild jokes, wordplay, or witty remarks while keeping the meaning accurate.
-    Keep it entertaining but not exaggerated or distracting.
+  funny: `
+    You must rely only on the text provided below — do not use any external knowledge or assumptions.
+    Respond in a light, witty, and humorous tone.
+    Include mild jokes, clever phrasing, or gentle wordplay — but keep the meaning accurate.
+    Make it entertaining without exaggeration or distraction.
   `
 };

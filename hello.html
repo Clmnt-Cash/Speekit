@@ -62,29 +62,6 @@
       background: rgb(0, 60, 133);
     }
 
-    /* Loader */
-    #loader {
-      height: 8px;
-      width: 100%;
-      background: #eee;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 12px;
-      display: none;
-    }
-
-    #loader-inner {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #0476ff, #00c3ff, #0476ff);
-      animation: loading 2s linear infinite;
-    }
-
-    @keyframes loading {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-
     /* Settings */
     .settings {
       margin-top: 16px;
@@ -176,6 +153,156 @@
       background: #e6f0ff;
     }
 
+    /* Spoken text styles */
+    .spoken-text {
+      margin: 12px 0;
+      padding: 12px;
+      background: rgba(4, 118, 255, 0.05);
+      border-radius: 10px;
+      text-align: left;
+      border: 1px solid rgba(4, 118, 255, 0.1);
+      transition: all 0.3s ease;
+      min-height: 24px;
+    }
+
+    #transcriptionText {
+      margin: 0;
+      word-wrap: break-word;
+      font-size: 14px;
+      line-height: 1.4;
+      color: #2c2c2c;
+      font-weight: 500;
+    }
+
+    /* Remove the empty state message from transcription text */
+
+    /* Animation container */
+    .animation-container {
+      height: 40px;
+      margin: 8px 0;
+      position: relative;
+    }
+
+    .animation-container::before {
+      content: "Let's speak";
+      position: absolute;
+      top: 40%;
+      right: 36%;
+      transform: translateY(-50%);
+      color: #666;
+      font-style: italic;
+      font-weight: 800;
+      font-size: 150%;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .animation-container::after {
+      content: "it!";
+      position: absolute;
+      top: 40%;
+      left: 66%;
+      transform: translateY(-50%);
+      color: rgb(4, 118, 255);
+      font-style: italic;
+      font-weight: 800;
+      font-size: 150%;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .animation-container:has(.wave-container.speaking)::before,
+    .animation-container:has(.processing-indicator.active)::before,
+    .animation-container:has(.wave-container.speaking)::after,
+    .animation-container:has(.processing-indicator.active)::after {
+      opacity: 0;
+    }
+
+    /* Wave animation */
+    .wave-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .wave-container.speaking {
+      opacity: 1;
+    }
+
+    .wave-bars {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 32px;
+    }
+
+    .wave-bars .bar {
+      width: 25px;
+      height: 25px;
+      background: rgb(4, 118, 255);
+      border-radius: 4px;
+      animation: sound-wave 1s ease-in-out infinite;
+      transform-origin: center;
+    }
+
+    .wave-bars .bar:nth-child(1) { animation-delay: 0.1s; }
+    .wave-bars .bar:nth-child(2) { animation-delay: 0.2s; }
+    .wave-bars .bar:nth-child(3) { animation-delay: 0.3s; }
+    .wave-bars .bar:nth-child(4) { animation-delay: 0.4s; }
+    .wave-bars .bar:nth-child(5) { animation-delay: 0.5s; }
+
+    @keyframes sound-wave {
+      0%, 100% { height: 4px; }
+      50% { height: 24px; }
+    }
+
+    /* Processing indicator */
+    .processing-indicator {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .processing-indicator.active {
+      opacity: 1;
+    }
+
+    .processing-indicator .dot {
+      width: 25px;
+      height: 25px;
+      background: rgb(4, 118, 255);
+      border-radius: 50%;
+      animation: processing 1.4s infinite ease-in-out;
+    }
+
+    .processing-indicator .dot:nth-child(1) { animation-delay: 0s; }
+    .processing-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+    .processing-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes processing {
+      0%, 80%, 100% { transform: scale(0.4); opacity: 0.4; }
+      40% { transform: scale(1.0); opacity: 1; }
+    }
+
   </style>
 </head>
 <body>
@@ -184,14 +311,35 @@
   </header>
 
   <main>
-    <!-- Loader -->
-    <div id="loader">
-      <div id="loader-inner"></div>
+    <!-- Animation container -->
+    <div class="animation-container">
+      <!-- Wave animation -->
+      <div id="waveContainer" class="wave-container">
+        <div class="wave-bars">
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+          <div class="bar"></div>
+        </div>
+      </div>
+
+      <!-- Processing indicator -->
+      <div id="processingIndicator" class="processing-indicator">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
     </div>
 
-    <!-- Bouton pour démarrer ou arrêter l’enregistrement -->
-  <button id="micBtn">🎤 Speak</button>
-  <button id="stopBtn">⏹ Stop</button>
+    <!-- Text display -->
+    <div id="spokenText" class="spoken-text">
+      <p id="transcriptionText"></p>
+    </div>
+
+    <!-- Bouton pour démarrer ou arrêter l'enregistrement -->
+    <button id="micBtn">🎤 Speak</button>
+    <button id="stopBtn">⏹ Stop</button>
 
     <!-- Settings -->
     <div class="settings">
