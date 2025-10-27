@@ -144,99 +144,99 @@ function calculateRelevanceScore(section, keywords, fullQuestion) {
 
 // APPROCHE 2 : Recherche de proximité (sliding window)
 // ------------------------------
-export function filterByProximity(fullText, userQuestion, windowSize = 1000) {
-  console.log("   🎯 Recherche par proximité...");
+// export function filterByProximity(fullText, userQuestion, windowSize = 1000) {
+//   console.log("   🎯 Recherche par proximité...");
   
-  const keywords = extractKeywords(userQuestion);
-  if (keywords.length === 0) {
-    console.warn("   ⚠️ Aucun mot-clé, retour texte complet");
-    return fullText.substring(0, 1500);
-  }
+//   const keywords = extractKeywords(userQuestion);
+//   if (keywords.length === 0) {
+//     console.warn("   ⚠️ Aucun mot-clé, retour texte complet");
+//     return fullText.substring(0, 1500);
+//   }
   
-  const textLower = fullText.toLowerCase();
-  const bestWindows = [];
+//   const textLower = fullText.toLowerCase();
+//   const bestWindows = [];
   
-  // Trouver toutes les positions des mots-clés
-  const keywordPositions = [];
-  keywords.forEach(keyword => {
-    let pos = 0;
-    while ((pos = textLower.indexOf(keyword.toLowerCase(), pos)) !== -1) {
-      keywordPositions.push({ keyword, position: pos });
-      pos += keyword.length;
-    }
-  });
+//   // Trouver toutes les positions des mots-clés
+//   const keywordPositions = [];
+//   keywords.forEach(keyword => {
+//     let pos = 0;
+//     while ((pos = textLower.indexOf(keyword.toLowerCase(), pos)) !== -1) {
+//       keywordPositions.push({ keyword, position: pos });
+//       pos += keyword.length;
+//     }
+//   });
   
-  if (keywordPositions.length === 0) {
-    console.warn("   ⚠️ Aucun mot-clé trouvé dans le texte");
-    return fullText.substring(0, 1500);
-  }
-  // Trier par position
-  keywordPositions.sort((a, b) => a.position - b.position);
+//   if (keywordPositions.length === 0) {
+//     console.warn("   ⚠️ Aucun mot-clé trouvé dans le texte");
+//     return fullText.substring(0, 1500);
+//   }
+//   // Trier par position
+//   keywordPositions.sort((a, b) => a.position - b.position);
   
-  console.log(`   📍 ${keywordPositions.length} occurrences de mots-clés trouvées`);
+//   console.log(`   📍 ${keywordPositions.length} occurrences de mots-clés trouvées`);
   
-  // Extraire les fenêtres autour des mots-clés
-  keywordPositions.forEach(kp => {
-    const start = Math.max(0, kp.position - windowSize / 2);
-    const end = Math.min(fullText.length, kp.position + windowSize / 2);
-    const window = fullText.substring(start, end);
+//   // Extraire les fenêtres autour des mots-clés
+//   keywordPositions.forEach(kp => {
+//     const start = Math.max(0, kp.position - windowSize / 2);
+//     const end = Math.min(fullText.length, kp.position + windowSize / 2);
+//     const window = fullText.substring(start, end);
     
-    // Calculer le score de cette fenêtre
-    const score = keywords.reduce((sum, kw) => {
-      const count = (window.toLowerCase().match(new RegExp(kw, 'gi')) || []).length;
-      return sum + count;
-    }, 0);
+//     // Calculer le score de cette fenêtre
+//     const score = keywords.reduce((sum, kw) => {
+//       const count = (window.toLowerCase().match(new RegExp(kw, 'gi')) || []).length;
+//       return sum + count;
+//     }, 0);
     
-    bestWindows.push({ window, score, position: kp.position });
-  });
-  // Trier par score et prendre la meilleure fenêtre
-  bestWindows.sort((a, b) => b.score - a.score);
+//     bestWindows.push({ window, score, position: kp.position });
+//   });
+//   // Trier par score et prendre la meilleure fenêtre
+//   bestWindows.sort((a, b) => b.score - a.score);
   
-  if (bestWindows.length > 0) {
-    console.log(`   ✅ Meilleure fenêtre trouvée (score: ${bestWindows[0].score})`);
-    return bestWindows[0].window.trim();
-  }
+//   if (bestWindows.length > 0) {
+//     console.log(`   ✅ Meilleure fenêtre trouvée (score: ${bestWindows[0].score})`);
+//     return bestWindows[0].window.trim();
+//   }
   
-  return fullText.substring(0, 1500);
-}
+//   return fullText.substring(0, 1500);
+// }
 
 // APPROCHE 3 : Extraction des phrases contenant les mots-clés
 // ------------------------------
-export function extractRelevantSentences(fullText, userQuestion, maxSentences = 10) {
-  console.log("   📝 Extraction des phrases pertinentes...");
+// export function extractRelevantSentences(fullText, userQuestion, maxSentences = 10) {
+//   console.log("   📝 Extraction des phrases pertinentes...");
   
-  const keywords = extractKeywords(userQuestion);
-  const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
+//   const keywords = extractKeywords(userQuestion);
+//   const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
   
-  console.log(`   📄 ${sentences.length} phrases trouvées`);
+//   console.log(`   📄 ${sentences.length} phrases trouvées`);
   
-  // Scorer chaque phrase
-  const scoredSentences = sentences.map(sentence => ({
-    text: sentence.trim(),
-    score: keywords.reduce((sum, keyword) => {
-      const regex = new RegExp(keyword, 'gi');
-      const matches = (sentence.match(regex) || []).length;
-      return sum + matches;
-    }, 0)
-  }));
+//   // Scorer chaque phrase
+//   const scoredSentences = sentences.map(sentence => ({
+//     text: sentence.trim(),
+//     score: keywords.reduce((sum, keyword) => {
+//       const regex = new RegExp(keyword, 'gi');
+//       const matches = (sentence.match(regex) || []).length;
+//       return sum + matches;
+//     }, 0)
+//   }));
   
-  // Trier par score et prendre les meilleures
-  scoredSentences.sort((a, b) => b.score - a.score);
+//   // Trier par score et prendre les meilleures
+//   scoredSentences.sort((a, b) => b.score - a.score);
   
-  const relevantSentences = scoredSentences
-    .filter(s => s.score > 0)
-    .slice(0, maxSentences)
-    .map(s => s.text);
+//   const relevantSentences = scoredSentences
+//     .filter(s => s.score > 0)
+//     .slice(0, maxSentences)
+//     .map(s => s.text);
   
-  console.log(`   ✅ ${relevantSentences.length} phrases pertinentes extraites`);
+//   console.log(`   ✅ ${relevantSentences.length} phrases pertinentes extraites`);
   
-  if (relevantSentences.length === 0) {
-    console.warn("   ⚠️ Aucune phrase pertinente, utilisation du début");
-    return fullText.substring(0, 1500);
-  }
+//   if (relevantSentences.length === 0) {
+//     console.warn("   ⚠️ Aucune phrase pertinente, utilisation du début");
+//     return fullText.substring(0, 1500);
+//   }
   
-  return relevantSentences.join(' ');
-}
+//   return relevantSentences.join(' ');
+// }
 
 // FONCTION PRINCIPALE : Choix automatique de la meilleure méthode
 // ------------------------------
