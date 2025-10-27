@@ -253,31 +253,27 @@ export function findRelevantContent(fullText, userQuestion, maxChars = 1500) {
     return fullText;
   }
   
-  // Essayer l'approche par scoring de sections
+  // Utiliser la méthode de scoring
   try {
     const filtered = filterRelevantText(fullText, userQuestion, maxChars);
     
     // Vérifier que le résultat est de qualité
     if (filtered.length > 200 && filtered.length <= maxChars) {
-      console.log("   ✅ Filtrage réussi (méthode: scoring)");
+      console.log("   ✅ Filtrage réussi");
       return filtered;
     }
-  } catch (err) {
-    console.error("   ❌ Erreur filtrage par scoring:", err);
-  }
-  
-  // Fallback : extraction de phrases
-  try {
-    const sentences = extractRelevantSentences(fullText, userQuestion, 8);
-    if (sentences.length > 200) {
-      console.log("   ✅ Filtrage réussi (méthode: phrases)");
-      return sentences.substring(0, maxChars);
+    
+    // Si le résultat est trop court, prendre le début du texte
+    if (filtered.length < 200) {
+      console.warn("   ⚠️ Résultat trop court, fallback");
+      return fullText.substring(0, maxChars);
     }
+    
+    return filtered;
+    
   } catch (err) {
-    console.error("   ❌ Erreur extraction phrases:", err);
+    console.error("   ❌ Erreur filtrage:", err);
+    console.warn("   ⚠️ Fallback: début du texte");
+    return fullText.substring(0, maxChars);
   }
-  
-  // Dernier fallback : début du texte
-  console.warn("   ⚠️ Fallback: utilisation du début du texte");
-  return fullText.substring(0, maxChars);
 }
