@@ -340,7 +340,7 @@ export async function summarizeText(webText, userQuestion, stylePrompts, selecte
         CRITICAL: Your answer MUST be under 400 words (maximum 2500 characters) because it will be spoken aloud.
         Be concise, direct, and avoid long explanations.
 
-        Base your answer strictly on the information provided below. Do not add, assume, or invent anything beyond what is given.
+        Base your answer strictly on the information from the web page provided below. Do not add, assume, or invent anything beyond what is given.
 
         Text from the web page:
         """${webText}"""`;
