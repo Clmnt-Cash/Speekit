@@ -227,8 +227,38 @@ function calculateRelevanceScore(section, keywords, fullQuestion) {
 //   }
 // }
 
+///////COMPARAISONS///////
 // ------------------------------
-// MÉTHODE : TF-IDF
+// MÉTHODE 1 : Mots-Clés (Actuelle)
+// ------------------------------
+function scoreByKeywords(section, keywords, question) {
+  const sectionLower = section.toLowerCase();
+  const questionLower = question.toLowerCase();
+  let score = 0;
+  
+  // Bonus question complète
+  if (sectionLower.includes(questionLower)) {
+    score += 5.0;
+  }
+  
+  // Score mots-clés
+  keywords.forEach(keyword => {
+    const regex = new RegExp(keyword, 'gi');
+    const occurrences = (sectionLower.match(regex) || []).length;
+    
+    if (occurrences > 0) {
+      score += Math.log(occurrences + 1) * 1.5;
+      
+      if (sectionLower.indexOf(keyword) < 100) {
+        score += 0.5;
+      }
+    }
+  });
+  
+  return score;
+}
+// ------------------------------
+// MÉTHODE 2 : TF-IDF
 // ------------------------------
 function scoreByTFIDF(section, keywords, allSections) {
   const words = section.toLowerCase().match(/\b\w+\b/g) || [];
@@ -258,6 +288,47 @@ function scoreByTFIDF(section, keywords, allSections) {
   });
   
   return score;
+}
+// ------------------------------
+// MÉTHODE 3 : Cosine Similarity
+// ------------------------------
+function scoreByCosineSimilarity(section, keywords, question) {
+  // Créer le vocabulaire (tous les mots uniques)
+  const questionWords = question.toLowerCase().match(/\b\w+\b/g) || [];
+  const sectionWords = section.toLowerCase().match(/\b\w+\b/g) || [];
+  
+  const vocabulary = [...new Set([...questionWords, ...sectionWords])];
+  
+  // Créer les vecteurs
+  const questionVector = vocabulary.map(word => 
+    questionWords.filter(w => w === word).length
+  );
+  
+  const sectionVector = vocabulary.map(word => 
+    sectionWords.filter(w => w === word).length
+  );
+  
+  // Calculer le produit scalaire (dot product)
+  let dotProduct = 0;
+  for (let i = 0; i < vocabulary.length; i++) {
+    dotProduct += questionVector[i] * sectionVector[i];
+  }
+  
+  // Calculer les normes
+  const normQuestion = Math.sqrt(
+    questionVector.reduce((sum, val) => sum + val * val, 0)
+  );
+  
+  const normSection = Math.sqrt(
+    sectionVector.reduce((sum, val) => sum + val * val, 0)
+  );
+  
+  // Cosine similarity
+  if (normQuestion === 0 || normSection === 0) return 0;
+  
+  const cosineSim = dotProduct / (normQuestion * normSection);
+  
+  return cosineSim * 10; // Multiplier par 10 pour avoir des scores comparables
 }
 // ------------------------------
 // FONCTION PRINCIPALE : Tester les 3 méthodes
