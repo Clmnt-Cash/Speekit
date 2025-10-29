@@ -1,56 +1,9 @@
-// ------------------------------
-// Extraction du texte de la page
-// ------------------------------
-// export async function getPageText() {
-//     try {
-//         console.log("   🔍 Extraction texte de la page...");
-
-//         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-//         const result = await chrome.scripting.executeScript({
-//             target: { tabId: tab.id },
-//             func: extractTextFromPage
-//         });
-
-//         let text = result[0]?.result || '';
-//         console.log(`   📊 Texte brut extrait: ${text.length} caractères`);
-
-//         // ✅ LIMITATION STRICTE : 1500 caractères MAX
-//         // const MAX_CHARS = 1500;
-//         // if (text.length > MAX_CHARS) {
-//         //     console.warn(`   ⚠️ TRONCATURE: ${text.length} → ${MAX_CHARS} chars`);
-
-//         //     // Tronquer par phrases pour garder du sens
-//         //     const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
-//         //     let truncated = '';
-
-//         //     for (const sentence of sentences) {
-//         //         if (truncated.length + sentence.length > MAX_CHARS) break;
-//         //         truncated += sentence;
-//         //     }
-
-//         //     // Si aucune phrase complète, couper brutalement
-//         //     if (truncated.length < 100) {
-//         //         truncated = text.substring(0, MAX_CHARS);
-//         //     }
-
-//         //     text = truncated;
-//         // }
-
-//         console.log(`   ✅ Texte final: ${text.length} caractères`);
-//         return text;
-
-//     } catch (err) {
-//         console.error("❌ Erreur récupération texte page:", err);
-//         throw err;
-//     }
-// }
 export async function getPageText() {
   try {
     console.log("   🔍 Extraction texte de la page...");
     
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
+
     const result = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: extractCleanTextDebug
@@ -59,7 +12,7 @@ export async function getPageText() {
     let text = result[0]?.result || '';
     console.log(`   📊 Texte brut extrait: ${text.length} caractères`);
     console.log(`   Aperçu brut: "${text.substring(0, 200)}..."`);
-    
+
     if (text.length === 0) {
       console.error("   ❌ Aucun texte extrait de la page !");
       return '';
@@ -334,13 +287,14 @@ export async function summarizeText(webText, userQuestion, stylePrompts, selecte
         });
 
         // ✅ PROMPT OPTIMISÉ pour réponse courte
-        const prompt = `You are a natural-sounding AI Web agent. Answer the following question clearly and naturally: ${userQuestion}.
+        const prompt = `You are a natural-sounding AI Web agent. Answer the following question clearly, naturally and briefly: ${userQuestion}.
         ${stylePrompts[selectedStyle]}
 
         CRITICAL: Your answer MUST be under 400 words (maximum 2500 characters) because it will be spoken aloud.
-        Be concise, direct, and avoid long explanations.
+        Be concise, direct, and avoid long explanations. Avoid smiley.
 
         Base your answer strictly on the information from the web page provided below. Do not add, assume, or invent anything beyond what is given.
+        If the information you are looking for aren't in the website text then say than you can't find any information relating to the user question.
 
         Text from the web page:
         """${webText}"""`;

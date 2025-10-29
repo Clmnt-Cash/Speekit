@@ -97,8 +97,10 @@ async function processAudio(recordedBlob, duration) {
     console.log("─".repeat(60));
     const startFilter = performance.now();
 
-    const relevantText = findRelevantContent(pageText, userQuestion, 1500);
+    let relevantText = findRelevantContent(pageText, userQuestion, 1500);
     // const relevantText = findRelevantContentComparison(pageText, userQuestion, 1500);
+    // console.log("-----PAGE TEXT-----");
+    // console.log(pageText);
 
     const durationFilter = (performance.now() - startFilter).toFixed(0);
     const reductionPercent = ((1 - relevantText.length / pageText.length) * 100).toFixed(1);
@@ -106,12 +108,16 @@ async function processAudio(recordedBlob, duration) {
     console.log(`   Longueur avant : ${pageText.length} chars`);
     console.log(`   Longueur après : ${relevantText.length} chars`);
     console.log(`   Réduction : ${reductionPercent}%`);
-    console.log(`   Aperçu filtré : "${relevantText.substring(0, 500)}..."`);
+    console.log(`   Aperçu filtré : "${relevantText.substring(0, 100)}..."`);
 
     // ========== ÉTAPE 4 : LLM ==========
     console.log("\n🤖 ÉTAPE 4 : Génération réponse LLM");
     console.log("─".repeat(60));
     const startLLM = performance.now();
+
+    if (relevantText.length == 0) {
+      relevantText = pageText;
+    }
 
     const summary = await summarizeText(relevantText, userQuestion, STYLE_PROMPTS, selectedPromptStyle);
 
@@ -176,7 +182,7 @@ async function handleMicButton(micBtn) {
 
   if (!isRecording()) {
     console.log("▶️ Démarrage enregistrement...");
-    micBtn.textContent = "⏹ Stop";
+    micBtn.textContent = "⏹ Stop Recording";
 
     try {
       // ✅ Passer processAudio comme callback
@@ -185,13 +191,13 @@ async function handleMicButton(micBtn) {
       console.log("✅ startRecording appelé avec succès");
     } catch (err) {
       console.error("❌ Erreur startRecording:", err);
-      micBtn.textContent = "🎤 Speak";
+      micBtn.textContent = "▶ Speak";
       alert("Microphone access denied");
     }
   } else {
     console.log("⏹️ Arrêt enregistrement...");
     stopRecording();
-    micBtn.textContent = "🎤 Speak";
+    micBtn.textContent = "▶ Speak";
   }
 }
 
