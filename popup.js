@@ -2,7 +2,7 @@ import { GCloud_TTS_API_KEY, VOICES, PROMPT_STYLES, STYLE_PROMPTS } from './conf
 import { startRecording, stopRecording, isRecording } from './microphone.js';
 import { transcribeAudio, synthesizeSpeech } from './speech.js';
 import { getPageText, summarizeText } from './textTreatment.js';
-import { findRelevantContent } from './textFiltering.js';
+import { findRelevantContent, findRelevantContentComparison } from './textFiltering.js';
 import { initUI, createOptions, playAudio, stopAudio, showProcessingIndicator, hideProcessingIndicator, resetUI } from './ui.js';
 
 // Variables globales
@@ -98,6 +98,7 @@ async function processAudio(recordedBlob, duration) {
     const startFilter = performance.now();
 
     const relevantText = findRelevantContent(pageText, userQuestion, 1500);
+    // const relevantText = findRelevantContentComparison(pageText, userQuestion, 1500);
 
     const durationFilter = (performance.now() - startFilter).toFixed(0);
     const reductionPercent = ((1 - relevantText.length / pageText.length) * 100).toFixed(1);
