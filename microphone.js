@@ -8,10 +8,10 @@ export function isRecording() {
 }
 
 export async function startRecording(onStopCallback) {
-    console.log("🎤 [microphone.js] startRecording appelé");
+    console.log("🎤 [microphone.js] startRecording called");
 
     if (recording) {
-        console.log("⚠️ Enregistrement déjà en cours");
+        console.log("Already recording, ignoring startRecording call");
         return;
     }
 
@@ -19,80 +19,80 @@ export async function startRecording(onStopCallback) {
     recordingStartTime = Date.now();
 
     try {
-        console.log("🎤 Demande d'accès au microphone...");
+        console.log("🎤 Requesting microphone access...");
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log("✅ Accès microphone accordé");
+        console.log("✅ Microphone access granted");
 
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
 
         mediaRecorder.ondataavailable = function (e) {
-            console.log(`📊 Chunk reçu: ${e.data.size} bytes`);
+            console.log(`📊 Chunk received: ${e.data.size} bytes`);
             if (e.data.size > 0) {
                 audioChunks.push(e.data);
             }
         };
 
         mediaRecorder.onstop = async function () {
-            console.log("⏹️ [microphone.js] onstop déclenché");
+            console.log("⏹️ [microphone.js] onstop event triggered");
             recording = false;
 
-            // ✅ Créer les variables une par une
-            console.log("📦 Création du Blob...");
-            console.log(`   - Chunks disponibles: ${audioChunks.length}`);
+            // Creation of variables
+            console.log("📦 Creating Blob...");
+            console.log(`   - Available chunks: ${audioChunks.length}`);
             console.log(`   - Type: audio/webm`);
 
             const blob = new Blob(audioChunks, { type: 'audio/webm' });
-            console.log(`✅ Blob créé: ${blob.size} bytes`);
+            console.log(`✅ Blob created: ${blob.size} bytes`);
 
             const duration = Date.now() - recordingStartTime;
-            console.log(`⏱️ Durée: ${duration}ms`);
+            console.log(`⏱️ Duration: ${duration}ms`);
 
-            // ✅ Arrêter le stream
-            console.log("🔌 Arrêt des tracks...");
+            // Stop the stream
+            console.log("🔌 Stopping tracks...");
             stream.getTracks().forEach(function (track) {
                 track.stop();
             });
-            console.log("✅ Tracks arrêtés");
+            console.log("✅ Tracks stopped");
 
-            // ✅ Appeler le callback
-            console.log("📞 Appel du callback...");
+            // Call the callback
+            console.log("📞 Calling callback...");
             if (onStopCallback) {
                 try {
                     await onStopCallback(blob, duration);
-                    console.log("✅ Callback terminé");
+                    console.log("✅ Callback finished");
                 } catch (err) {
-                    console.error("❌ Erreur dans callback:", err);
+                    console.error("❌ Error in callback:", err);
                 }
             } else {
-                console.warn("⚠️ Aucun callback fourni");
+                console.warn("⚠️ No callback provided");
             }
         };
 
         mediaRecorder.start();
-        console.log("✅ Enregistrement démarré");
+        console.log("✅ Recording started");
         return true;
 
     } catch (err) {
-        console.error("❌ Erreur accès micro:", err);
+        console.error("❌ Error accessing microphone:", err);
         recording = false;
         throw err;
     }
 }
 
 export function stopRecording() {
-    console.log("⏹️ [microphone.js] stopRecording appelé");
+    console.log("⏹️ [microphone.js] stopRecording called");
 
     if (!recording) {
-        console.log("⚠️ Aucun enregistrement en cours");
+        console.log("⚠️ No recording in progress");
         return;
     }
 
     if (!mediaRecorder) {
-        console.log("⚠️ Pas de mediaRecorder");
+        console.log("⚠️ No mediaRecorder");
         return;
     }
 
-    console.log("⏹️ Arrêt du MediaRecorder...");
+    console.log("⏹️ Stopping MediaRecorder...");
     mediaRecorder.stop();
 }

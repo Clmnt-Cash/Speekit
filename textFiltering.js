@@ -1,41 +1,41 @@
-// APPROCHE 1 : Recherche par mots-clés + scoring
+// APPROCHE 1 : Research by keywords + scoring
 // ------------------------------
 export function filterRelevantText(fullText, userQuestion, maxChars = 1500) {
-  console.log("   🔍 Filtrage du texte pertinent...");
+  console.log("   🔍 Filtering relevant text...");
   console.log(`   📊 Input: ${fullText.length} chars, Question: "${userQuestion}"`);
-  
-  // Extraire les mots-clés de la question
+
+  // Extract keywords from the question
   const keywords = extractKeywords(userQuestion);
-  console.log(`   🔑 Mots-clés extraits: ${keywords.join(', ')}`);
-  
-  // Découper le texte en paragraphes/sections
+  console.log(`   🔑 Extracted keywords: ${keywords.join(', ')}`);
+
+  // Split the text into paragraphs/sections
   const sections = splitIntoSections(fullText);
-  console.log(`   📄 Sections trouvées: ${sections.length}`);
-  
-  // Scorer chaque section
+  console.log(`   📄 Sections found: ${sections.length}`);
+
+  // Score each section
   const scoredSections = sections.map(section => ({
     text: section,
     score: calculateRelevanceScore(section, keywords, userQuestion)
   }));
-  // Log des meilleurs scores
+  // Log top scores
   console.log("   📊 Top 3 sections:");
   scoredSections.slice(0, 3).forEach((s, i) => {
     console.log(`      ${i + 1}. Score: ${s.score.toFixed(2)} - "${s.text.substring(0, 60)}..."`);
   });
-  // Construire le texte filtré en prenant les sections les plus pertinentes
+  // Build the filtered text
   let filteredText = '';
   let currentLength = 0;
   
   for (const section of scoredSections) {
-    // Ignorer les sections avec score trop faible
+    // Ignore sections with low score
     if (section.score < 0.1) continue;
-    
-    // Vérifier qu'on ne dépasse pas la limite
+
+    // Check if we exceed the limit
     if (currentLength + section.text.length > maxChars) {
-      // Si on a déjà du contenu, on s'arrête
+      // If we already have content, stop
       if (filteredText.length > 200) break;
-      
-      // Sinon, tronquer cette section pour atteindre maxChars
+
+      // Otherwise, truncate this section to reach maxChars
       const remaining = maxChars - currentLength;
       filteredText += section.text.substring(0, remaining) + '...';
       break;
@@ -45,21 +45,20 @@ export function filterRelevantText(fullText, userQuestion, maxChars = 1500) {
     currentLength += section.text.length + 2;
   }
   
-  // Fallback : si pas assez de contenu pertinent, prendre le début
+  // Fallback : if too short, take the beginning of the text
   if (filteredText.length < 200) {
-    console.warn("   ⚠️ Pas assez de contenu pertinent trouvé, utilisation du début du texte");
+    console.warn("   ⚠️ Not enough relevant content found, using beginning of text");
     filteredText = fullText.substring(0, maxChars);
   }
-  
-  console.log(`   ✅ Texte filtré: ${filteredText.length} chars (réduction: ${((1 - filteredText.length / fullText.length) * 100).toFixed(1)}%)`);
-  
+
+  console.log(`   ✅ Filtered text: ${filteredText.length} chars (reduction: ${((1 - filteredText.length / fullText.length) * 100).toFixed(1)}%)`);
+
   return filteredText.trim();
 }
-
-// Extraction des mots-clés de la question
+// Extract keywords from the question
 // ------------------------------
 function extractKeywords(question) {
-  // Mots vides à ignorer (stop words)
+  // Stop words to ignore
   const stopWords = new Set([
     'what', 'is', 'are', 'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for',
     'of', 'with', 'by', 'from', 'about', 'as', 'into', 'through', 'during',
@@ -71,33 +70,17 @@ function extractKeywords(question) {
     'explain', 'describe', 'this', 'that', 'these', 'those', 'it', 'its'
   ]);
   
-  // Nettoyer et tokeniser la question
+  // Clean and split the question into words
   const words = question
     .toLowerCase()
-    .replace(/[^\w\s]/g, ' ') // Supprimer ponctuation
+    .replace(/[^\w\s]/g, ' ') // Remove punctuation
     .split(/\s+/)
     .filter(word => word.length > 2 && !stopWords.has(word));
-  
-  // Retourner les mots uniques
+
+  // Return unique words
   return [...new Set(words)];
 }
 
-// Découper le texte en sections
-// ------------------------------
-// function splitIntoSections(text) {
-//   // Découper par paragraphes (double saut de ligne)
-//   let sections = text.split(/\n\n+/);
-  
-//   // Si pas assez de sections, découper par phrases longues
-//   if (sections.length < 5) {
-//     sections = text.match(/[^.!?]+[.!?]+(\s+[^.!?]+[.!?]+){0,2}/g) || [text];
-//   }
-  
-//   // Nettoyer et filtrer les sections trop courtes
-//   return sections
-//     .map(s => s.trim())
-//     .filter(s => s.length > 50); // Ignorer sections < 50 chars
-// }
 function splitIntoSections(text) {
   let sections = text.split(/\n\n+/);
   
@@ -110,17 +93,17 @@ function splitIntoSections(text) {
     .filter(s => {
       if (s.length < 50) return false;
       
-      // ✅ NOUVEAU : Ignorer les références Wikipedia
-      if (/^\^/.test(s)) return false;  // Commence par ^
+      // ✅ NEW : Ignoring certain patterns
+      if (/^\^/.test(s)) return false;  // Starts with ^
       if (/Retrieved|Archived|Cite web|doi:|ISBN/i.test(s)) return false;
-      
-      // ✅ NOUVEAU : Ignorer les citations nécessaires
+
+      // ✅ NEW : Ignoring necessary citations
       if (/\[citation needed\]/i.test(s)) return false;
-      
-      // ✅ NOUVEAU : Ignorer les lignes avec beaucoup de dates/URLs
+
+      // ✅ NEW : Ignoring lines with many dates/URLs
       if (/\d{4}/.test(s) && /http|www\./i.test(s)) return false;
       
-      // Ignorer sections de navigation
+      // Ignore sections navigation
       const navKeywords = ['main menu', 'navigation', 'toggle', 'see also', 'references', 'external links', 'contents hide'];
       const lowerSection = s.toLowerCase();
       for (const keyword of navKeywords) {
@@ -130,55 +113,55 @@ function splitIntoSections(text) {
       // Ignorer sections avec trop de chiffres
       const digitRatio = (s.match(/\d/g) || []).length / s.length;
       if (digitRatio > 0.2) return false;
-      
-      // ✅ NOUVEAU : Bonus pour sections qui commencent par une phrase normale
+
+      // ✅ NEW : Bonus for sections starting with article
       const startsWithArticle = /^(The|A|An|In|On|At|Of|For|With|By)\s+[a-z]/i.test(s);
       if (!startsWithArticle && s.length > 100) {
-        // Vérifier que ce n'est pas juste une liste de mots
+        // Verifying average word length to avoid lists
         const wordCount = s.split(/\s+/).length;
         const avgWordLength = s.length / wordCount;
-        if (avgWordLength < 4) return false; // Mots trop courts = liste
+        if (avgWordLength < 4) return false; // TOO short average word length
       }
       
       return true;
     });
 }
 
-// Calculer le score de pertinence d'une section
+// Calcul of relevance score for a section
 // ------------------------------
 function calculateRelevanceScore(section, keywords, fullQuestion) {
   const sectionLower = section.toLowerCase();
   const questionLower = fullQuestion.toLowerCase();
   let score = 0;
   
-  // 1. Bonus si la question complète apparaît
+  // 1. Bonus if the full question appears
   if (sectionLower.includes(questionLower)) {
     score += 5.0;
   }
-  
-  // 2. Score basé sur les mots-clés
+
+  // 2. Score based on keywords
   keywords.forEach(keyword => {
     const keywordLower = keyword.toLowerCase();
-    
-    // Compter les occurrences
+
+    // Count occurrences
     const occurrences = (sectionLower.match(new RegExp(keywordLower, 'g')) || []).length;
     
     if (occurrences > 0) {
-      // Score logarithmique pour éviter de sur-valoriser les répétitions
+      // Logarithmic scoring to avoid overvaluing repetitions
       score += Math.log(occurrences + 1) * 1.5;
-      
-      // Bonus si le mot-clé apparaît au début de la section (souvent plus pertinent)
+
+      // Bonus if the keyword appears at the beginning of the section (often more relevant)
       if (sectionLower.indexOf(keywordLower) < 100) {
         score += 0.5;
       }
     }
   });
-  // 3. Bonus pour les sections de longueur optimale (ni trop courtes, ni trop longues)
+  // 3. Bonus for sections of optimal length (not too short, not too long)
   const optimalLength = 200;
   const lengthRatio = Math.min(section.length, optimalLength) / optimalLength;
   score *= lengthRatio;
-  
-  // 4. Pénalité pour sections avec beaucoup de chiffres (souvent des métadonnées)
+
+  // 4. PPenalty for sections with many numbers (often metadata)
   const digitRatio = (section.match(/\d/g) || []).length / section.length;
   if (digitRatio > 0.1) {
     score *= 0.5;
@@ -187,78 +170,8 @@ function calculateRelevanceScore(section, keywords, fullQuestion) {
   return score;
 }
 
-// FONCTION PRINCIPALE : Choix automatique de la meilleure méthode
 // ------------------------------
-// export function findRelevantContent(fullText, userQuestion, maxChars = 1500) {
-//   console.log("\n🎯 RECHERCHE DE CONTENU PERTINENT");
-//   console.log("─".repeat(60));
-//   console.log(`   Question: "${userQuestion}"`);
-//   console.log(`   Texte complet: ${fullText.length} chars`);
-//   console.log(`   Limite cible: ${maxChars} chars`);
-  
-//   // Si le texte est déjà court, pas besoin de filtrer
-//   if (fullText.length <= maxChars) {
-//     console.log("   ℹ️ Texte déjà court, pas de filtrage nécessaire");
-//     return fullText;
-//   }
-  
-//   // Utiliser la méthode de scoring
-//   try {
-//     const filtered = filterRelevantText(fullText, userQuestion, maxChars);
-    
-//     // Vérifier que le résultat est de qualité
-//     if (filtered.length > 200 && filtered.length <= maxChars) {
-//       console.log("   ✅ Filtrage réussi");
-//       return filtered;
-//     }
-    
-//     // Si le résultat est trop court, prendre le début du texte
-//     if (filtered.length < 200) {
-//       console.warn("   ⚠️ Résultat trop court, fallback");
-//       return fullText.substring(0, maxChars);
-//     }
-    
-//     return filtered;
-    
-//   } catch (err) {
-//     console.error("   ❌ Erreur filtrage:", err);
-//     console.warn("   ⚠️ Fallback: début du texte");
-//     return fullText.substring(0, maxChars);
-//   }
-// }
-
-///////COMPARAISONS///////
-// ------------------------------
-// MÉTHODE 1 : Mots-Clés (Actuelle)
-// ------------------------------
-function scoreByKeywords(section, keywords, question) {
-  const sectionLower = section.toLowerCase();
-  const questionLower = question.toLowerCase();
-  let score = 0;
-  
-  // Bonus question complète
-  if (sectionLower.includes(questionLower)) {
-    score += 5.0;
-  }
-  
-  // Score mots-clés
-  keywords.forEach(keyword => {
-    const regex = new RegExp(keyword, 'gi');
-    const occurrences = (sectionLower.match(regex) || []).length;
-    
-    if (occurrences > 0) {
-      score += Math.log(occurrences + 1) * 1.5;
-      
-      if (sectionLower.indexOf(keyword) < 100) {
-        score += 0.5;
-      }
-    }
-  });
-  
-  return score;
-}
-// ------------------------------
-// MÉTHODE 2 : TF-IDF
+// MÉTHODE : TF-IDF
 // ------------------------------
 function scoreByTFIDF(section, keywords, allSections) {
   const words = section.toLowerCase().match(/\b\w+\b/g) || [];
@@ -289,110 +202,9 @@ function scoreByTFIDF(section, keywords, allSections) {
   
   return score;
 }
+
 // ------------------------------
-// MÉTHODE 3 : Cosine Similarity
-// ------------------------------
-function scoreByCosineSimilarity(section, keywords, question) {
-  // Créer le vocabulaire (tous les mots uniques)
-  const questionWords = question.toLowerCase().match(/\b\w+\b/g) || [];
-  const sectionWords = section.toLowerCase().match(/\b\w+\b/g) || [];
-  
-  const vocabulary = [...new Set([...questionWords, ...sectionWords])];
-  
-  // Créer les vecteurs
-  const questionVector = vocabulary.map(word => 
-    questionWords.filter(w => w === word).length
-  );
-  
-  const sectionVector = vocabulary.map(word => 
-    sectionWords.filter(w => w === word).length
-  );
-  
-  // Calculer le produit scalaire (dot product)
-  let dotProduct = 0;
-  for (let i = 0; i < vocabulary.length; i++) {
-    dotProduct += questionVector[i] * sectionVector[i];
-  }
-  
-  // Calculer les normes
-  const normQuestion = Math.sqrt(
-    questionVector.reduce((sum, val) => sum + val * val, 0)
-  );
-  
-  const normSection = Math.sqrt(
-    sectionVector.reduce((sum, val) => sum + val * val, 0)
-  );
-  
-  // Cosine similarity
-  if (normQuestion === 0 || normSection === 0) return 0;
-  
-  const cosineSim = dotProduct / (normQuestion * normSection);
-  
-  return cosineSim * 10; // Multiplier par 10 pour avoir des scores comparables
-}
-// ------------------------------
-// FONCTION PRINCIPALE : Tester les 3 méthodes
-// ------------------------------
-export function findRelevantContentComparison(fullText, userQuestion, maxChars = 1500) {
-  console.log("\n🔬 COMPARAISON DES 3 MÉTHODES");
-  console.log("=".repeat(60));
-  
-  const keywords = extractKeywords(userQuestion);
-  const sections = splitIntoSections(fullText);
-  
-  console.log(`📊 Configuration:`);
-  console.log(`   Mots-clés: ${keywords.join(', ')}`);
-  console.log(`   Sections: ${sections.length}`);
-  
-  // Scorer avec les 3 méthodes
-  const results = {
-    keywords: [],
-    tfidf: [],
-    cosine: []
-  };
-  
-  sections.forEach((section, index) => {
-    const keywordsScore = scoreByKeywords(section, keywords, userQuestion);
-    const tfidfScore = scoreByTFIDF(section, keywords, sections);
-    const cosineScore = scoreByCosineSimilarity(section, keywords, userQuestion);
-    
-    results.keywords.push({ index, section, score: keywordsScore });
-    results.tfidf.push({ index, section, score: tfidfScore });
-    results.cosine.push({ index, section, score: cosineScore });
-  });
-  
-  // Trier chaque méthode
-  results.keywords.sort((a, b) => b.score - a.score);
-  results.tfidf.sort((a, b) => b.score - a.score);
-  results.cosine.sort((a, b) => b.score - a.score);
-  
-  // Afficher les top 3 de chaque méthode
-  console.log("\n📊 TOP 3 - MOTS-CLÉS:");
-  results.keywords.slice(0, 3).forEach((r, i) => {
-    console.log(`   ${i + 1}. Score: ${r.score.toFixed(2)} - "${r.section.substring(0, 60)}..."`);
-  });
-  
-  console.log("\n📊 TOP 3 - TF-IDF:");
-  results.tfidf.slice(0, 3).forEach((r, i) => {
-    console.log(`   ${i + 1}. Score: ${r.score.toFixed(2)} - "${r.section.substring(0, 60)}..."`);
-  });
-  
-  console.log("\n📊 TOP 3 - COSINE SIMILARITY:");
-  results.cosine.slice(0, 3).forEach((r, i) => {
-    console.log(`   ${i + 1}. Score: ${r.score.toFixed(2)} - "${r.section.substring(0, 60)}..."`);
-  });
-  
-  // Comparer les résultats
-  console.log("\n🔍 ANALYSE:");
-  console.log(`   Accord Mots-Clés vs TF-IDF: ${compareTop3(results.keywords, results.tfidf)}%`);
-  console.log(`   Accord Mots-Clés vs Cosine: ${compareTop3(results.keywords, results.cosine)}%`);
-  console.log(`   Accord TF-IDF vs Cosine: ${compareTop3(results.tfidf, results.cosine)}%`);
-  
-  // Utiliser la méthode des mots-clés par défaut
-  return buildFilteredText(results.keywords, maxChars);
-}
-// ------------------------------
-// FONCTION PRINCIPALE : Choisir une méthode
+// MAIN FUNCTION
 // ------------------------------
 export function findRelevantContent(fullText, userQuestion, maxChars = 1500) {
   console.log(`\n🎯 FILTRAGE (méthode: tf-idf)`);
@@ -422,7 +234,7 @@ export function findRelevantContent(fullText, userQuestion, maxChars = 1500) {
   return buildFilteredText(scoredSections, maxChars);
 }
 // ------------------------------
-// Construire le texte filtré
+// Build the filtered text
 // ------------------------------
 function buildFilteredText(scoredSections, maxChars) {
   let result = '';
@@ -444,18 +256,4 @@ function buildFilteredText(scoredSections, maxChars) {
   }
   
   return result.trim();
-}
-// ------------------------------
-// Comparer le top 3 de deux méthodes
-// ------------------------------
-function compareTop3(results1, results2) {
-  const top3_1 = new Set(results1.slice(0, 3).map(r => r.index));
-  const top3_2 = new Set(results2.slice(0, 3).map(r => r.index));
-  
-  let commonCount = 0;
-  top3_1.forEach(index => {
-    if (top3_2.has(index)) commonCount++;
-  });
-  
-  return Math.round((commonCount / 3) * 100);
 }

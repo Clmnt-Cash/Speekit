@@ -6,10 +6,10 @@ import { updateTranscriptionText } from './ui.js';
 // ------------------------------
 export async function transcribeAudio(audioBlob) {
     try {
-        console.log("   🎙️ Conversion audio en base64...");
+        console.log("   🎙️ Conversion audio in base64...");
         const arrayBuffer = await audioBlob.arrayBuffer();
 
-        // Conversion base64 optimisée
+        // Conversion base64 optimised
         const bytes = new Uint8Array(arrayBuffer);
         let binary = '';
         const chunkSize = 0x8000;
@@ -20,28 +20,28 @@ export async function transcribeAudio(audioBlob) {
         }
 
         const audioBytes = btoa(binary);
-        console.log(`   ✅ Audio encodé: ${audioBytes.length} chars base64`);
+        console.log(`   ✅ Audio encoded: ${audioBytes.length} chars base64`);
 
-        // ✅ CONFIGURATION OPTIMISÉE pour meilleure reconnaissance
+        // ✅ CONFIGURATION OPTIMISED
         const body = {
             config: {
                 encoding: "WEBM_OPUS",
                 sampleRateHertz: 48000,
                 languageCode: "en-US",
 
-                // ✅ NOUVELLES OPTIONS pour améliorer la reconnaissance
-                enableAutomaticPunctuation: true,        // Ponctuation auto
-                model: "latest_long",                     // Modèle optimisé pour phrases longues
-                useEnhanced: true,                        // Modèle amélioré
+                // ✅ NEW Features
+                enableAutomaticPunctuation: true,        // Automatic punctuation
+                model: "latest_long",                     // Optimised model for long phrases
+                useEnhanced: true,                        // Enhanced model
 
-                // ✅ Alternatives de transcription
+                // ✅ Alternative transcription
                 maxAlternatives: 1,
 
                 // ✅ Configuration audio
                 audioChannelCount: 1,
                 enableSeparateRecognitionPerChannel: false,
 
-                // ✅ Adaptation de reconnaissance
+                // ✅ Adaptation of speech recognition
                 speechContexts: [{
                     phrases: [
                         "what is",
@@ -53,7 +53,7 @@ export async function transcribeAudio(audioBlob) {
                         "rocking chair",
                         "wikipedia"
                     ],
-                    boost: 10  // Boost de 10 pour ces phrases communes
+                    boost: 10  // Boost of 10 for these common phrases
                 }]
             },
             audio: {
@@ -61,7 +61,7 @@ export async function transcribeAudio(audioBlob) {
             }
         };
 
-        console.log("   ⏳ Envoi à Google Speech-to-Text...");
+        console.log("   ⏳ Sending to Google Speech-to-Text...");
         const startTime = performance.now();
 
         const response = await fetch(
@@ -78,7 +78,7 @@ export async function transcribeAudio(audioBlob) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("❌ Erreur Google STT:", errorText);
+            console.error("❌ Error Google STT:", errorText);
             throw new Error(`STT API Error: ${response.status}`);
         }
 
@@ -86,12 +86,12 @@ export async function transcribeAudio(audioBlob) {
 
         // ✅ Afficher TOUS les résultats pour debug
         if (data.results && data.results.length > 0) {
-            console.log(`   📊 Résultats STT (${data.results.length} résultat(s)):`);
+            console.log(`   📊 RResults STT (${data.results.length} result(s)):`);
             data.results.forEach((result, i) => {
                 if (result.alternatives) {
                     result.alternatives.forEach((alt, j) => {
                         const confidence = (alt.confidence || 0) * 100;
-                        console.log(`      ${i}.${j}: "${alt.transcript}" (confiance: ${confidence.toFixed(1)}%)`);
+                        console.log(`      ${i}.${j}: "${alt.transcript}" (confidence: ${confidence.toFixed(1)}%)`);
                     });
                 }
             });
@@ -99,25 +99,25 @@ export async function transcribeAudio(audioBlob) {
             const transcript = data.results[0].alternatives[0].transcript || '';
             const confidence = data.results[0].alternatives[0].confidence || 0;
 
-            console.log(`   ✅ Transcription retenue: "${transcript}"`);
-            console.log(`   📊 Confiance: ${(confidence * 100).toFixed(1)}%`);
+            console.log(`   ✅ Transcription: "${transcript}"`);
+            console.log(`   📊 Confidence: ${(confidence * 100).toFixed(1)}%`);
 
             // Update the UI with the transcribed text
             updateTranscriptionText(transcript);
 
             // ⚠️ Avertir si confiance faible
             if (confidence < 0.7) {
-                console.warn(`   ⚠️ Confiance faible (${(confidence * 100).toFixed(1)}%) - La transcription peut être incorrecte`);
+                console.warn(`   ⚠️ Confidence weak (${(confidence * 100).toFixed(1)}%) - Transcription may be incorrect`);
             }
 
             return transcript;
         }
 
-        console.warn("⚠️ Aucun résultat de transcription");
+        console.warn("⚠️ No transcription results");
         return '';
 
     } catch (err) {
-        console.error("❌ Erreur transcription:", err);
+        console.error("❌ Error transcription:", err);
         throw err;
     }
 }

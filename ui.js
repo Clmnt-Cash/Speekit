@@ -75,7 +75,7 @@ export function resetUI() {
 }
 
 export async function playAudio(audioBlob) {
-    stopAudio(); // Arrêter l'audio précédent
+    stopAudio(); // Stop any existing audio
     hideProcessingIndicator();
 
     const audioUrl = URL.createObjectURL(audioBlob);

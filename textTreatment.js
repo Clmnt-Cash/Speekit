@@ -18,7 +18,7 @@ export async function getPageText() {
       return '';
     }
     
-    // Nettoyage léger côté popup
+    // Cleanup léger
     text = lightCleanup(text);
     console.log(`   ✅ Après nettoyage léger: ${text.length} caractères`);
     console.log(`   Aperçu nettoyé: "${text.substring(0, 200)}..."`);
@@ -35,13 +35,13 @@ export async function getPageText() {
 function extractCleanTextDebug() {
   console.log("[PAGE] Début extraction...");
   
-  // Tags de contenu
+  // Tags to include as content
   const contentTags = ['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'ARTICLE', 'SECTION'];
-  
-  // Tags à ignorer
+
+  // Tags to ignore
   const ignoreTags = ['HEADER', 'FOOTER', 'NAV', 'ASIDE', 'SCRIPT', 'STYLE', 'NOSCRIPT', 'META', 'LINK'];
 
-  // Sélecteurs à ignorer (version SIMPLIFIÉE)
+  // Selectors to ignore
   const ignoreSelectors = [
     'nav', 'header', 'footer', 'aside',
     '[role="navigation"]', '[role="banner"]', '[role="contentinfo"]',
@@ -54,12 +54,12 @@ function extractCleanTextDebug() {
   }
 
   function shouldIgnore(el) {
-    // Ignorer par tag
+    // Ignore by tag
     if (ignoreTags.includes(el.tagName)) {
       return true;
     }
-    
-    // Ignorer par sélecteur (SIMPLIFIÉ - juste matches, pas closest)
+
+    // Ignore by selector (SIMPLIFIED - just matches, not closest)
     for (const selector of ignoreSelectors) {
       try {
         if (el.matches && el.matches(selector)) {
@@ -71,7 +71,7 @@ function extractCleanTextDebug() {
     return false;
   }
 
-  // Trouver le contenu principal
+  // Finding main content area
   let mainElement = 
     document.querySelector('main') ||
     document.querySelector('article') ||
@@ -79,18 +79,18 @@ function extractCleanTextDebug() {
 
   console.log("[PAGE] Main element:", mainElement ? mainElement.tagName : 'null');
 
-  // Si pas de main, utiliser body
+  // If no main, use body
   if (!mainElement) {
     console.log("[PAGE] Pas de main, utilisation de body");
     mainElement = document.body;
   }
 
-  // Collecter les éléments
+  // Collect elements
   const selector = contentTags.map(t => t.toLowerCase()).join(',');
-  console.log("[PAGE] Sélecteur:", selector);
-  
+  console.log("[PAGE] Selector:", selector);
+
   const elements = mainElement.querySelectorAll(selector);
-  console.log("[PAGE] Éléments trouvés:", elements.length);
+  console.log("[PAGE] Elements found:", elements.length);
 
   let extractedText = '';
   let validElements = 0;
@@ -99,7 +99,7 @@ function extractCleanTextDebug() {
   let ignoredTooShort = 0;
 
   elements.forEach((el, index) => {
-    // Debug pour les 5 premiers éléments
+    // Debug for the first 5 elements
     if (index < 5) {
       console.log(`[PAGE] Element ${index}:`, el.tagName, el.textContent.substring(0, 50));
     }
@@ -125,31 +125,31 @@ function extractCleanTextDebug() {
     extractedText += text + '\n\n';
   });
 
-  console.log("[PAGE] Statistiques:");
-  console.log(`  - Éléments valides: ${validElements}`);
-  console.log(`  - Ignorés (invisibles): ${ignoredInvisible}`);
-  console.log(`  - Ignorés (sélecteurs): ${ignoredBySelector}`);
-  console.log(`  - Ignorés (trop courts): ${ignoredTooShort}`);
-  console.log(`  - Texte extrait: ${extractedText.length} chars`);
+  console.log("[PAGE] Statistics:");
+  console.log(`  - Valid elements: ${validElements}`);
+  console.log(`  - Ignored (invisible): ${ignoredInvisible}`);
+  console.log(`  - Ignored (selectors): ${ignoredBySelector}`);
+  console.log(`  - Ignored (too short): ${ignoredTooShort}`);
+  console.log(`  - Extracted text: ${extractedText.length} chars`);
 
-  // Nettoyage minimal
+  // Minimal cleanup
   const cleaned = extractedText
     .replace(/\s{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-  console.log("[PAGE] Après nettoyage:", cleaned.length, "chars");
+  console.log("[PAGE] After cleanup:", cleaned.length, "chars");
   
   return cleaned;
 }
 
 // ------------------------------
-// ✅ Nettoyage final côté popup
+// ✅ Final cleanup for popup
 // ------------------------------
 function lightCleanup(text) {
-  console.log("   🧹 Nettoyage léger...");
+  console.log("   🧹 Light cleanup...");
   
-  // Seulement les patterns les plus évidents
+  // Only the most obvious patterns
   const simplePatterns = [
     /Main menu/gi,
     /Personal tools/gi,
@@ -169,7 +169,7 @@ function lightCleanup(text) {
     }
   }
 
-  // Nettoyer espaces
+  // Clean up spaces and newlines
   cleaned = cleaned
     .replace(/\s{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
@@ -180,14 +180,14 @@ function lightCleanup(text) {
 
 export async function getPageTextSimple() {
   try {
-    console.log("   🔍 Extraction SIMPLE...");
+    console.log("   🔍 Easy extraction...");
     
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
     const result = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => {
-        // Version ultra-basique : juste les paragraphes
+        // Really simple extraction: just paragraphs and headers
         const paragraphs = Array.from(document.querySelectorAll('p, h1, h2, h3'));
         
         return paragraphs
@@ -198,54 +198,18 @@ export async function getPageTextSimple() {
     });
 
     const text = result[0]?.result || '';
-    console.log(`   ✅ Texte simple extrait: ${text.length} chars`);
+    console.log(`   ✅ Easy extracted text: ${text.length} chars`);
     
     return text;
 
   } catch (err) {
-    console.error("❌ Erreur extraction simple:", err);
+    console.error("❌ Error during easy extraction:", err);
     return '';
   }
 }
 
-// Fonction exécutée dans le contexte de la page
-function extractTextFromPage() {
-    const allowedTags = ['P', 'DIV', 'SPAN', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE', 'FIGCAPTION'];
-    const ignoreTags = ['HEADER', 'FOOTER', 'NAV', 'ASIDE', 'SCRIPT', 'STYLE', 'NOSCRIPT', 'META', 'LINK'];
-
-    function isVisible(el) {
-        const style = window.getComputedStyle(el);
-        const rect = el.getBoundingClientRect();
-        return style && style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
-    }
-
-    function getTextFromNode(node) {
-        let text = '';
-        if (!node) return text;
-
-        if (node.nodeType === Node.ELEMENT_NODE) {
-            if (!isVisible(node)) return '';
-            if (ignoreTags.includes(node.tagName)) return '';
-
-            if (allowedTags.includes(node.tagName)) {
-                const t = (node.textContent || '').trim();  // ✅ textContent au lieu de innerText
-                if (t) text += t + '\n';
-            }
-        }
-
-        node.childNodes.forEach(child => text += getTextFromNode(child));
-
-        return text
-            .replace(/\s{2,}/g, ' ')
-            .replace(/\n{2,}/g, '\n')
-            .trim();
-    }
-
-    return getTextFromNode(document.body);
-}
-
 // ------------------------------
-// Résumé via LLM
+// Summary via LLM
 // ------------------------------
 export async function summarizeText(webText, userQuestion, stylePrompts, selectedStyle) {
     try {
@@ -259,7 +223,7 @@ export async function summarizeText(webText, userQuestion, stylePrompts, selecte
         // ✅ DOUBLE VÉRIFICATION : Limiter l'input
         const MAX_INPUT = 1500;
         if (webText.length > MAX_INPUT) {
-            console.warn(`   ⚠️ Input LLM trop long: ${webText.length} → ${MAX_INPUT} chars`);
+            console.warn(`   ⚠️ Input LLM too long: ${webText.length} → ${MAX_INPUT} chars`);
             webText = webText.substring(0, MAX_INPUT);
         }
 
@@ -331,7 +295,7 @@ export async function summarizeText(webText, userQuestion, stylePrompts, selecte
 
         // ✅ Vérification finale
         if (outputBytes > 4800) {
-            console.error(`   ❌ ATTENTION: Output encore trop long (${outputBytes} bytes)`);
+            console.error(`   ❌ ATTENTION: Output still long (${outputBytes} bytes)`);
             // Dernière troncature brutale
             while (new TextEncoder().encode(finalSummary).length > 4500) {
                 finalSummary = finalSummary.substring(0, finalSummary.length - 100);

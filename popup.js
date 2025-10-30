@@ -2,10 +2,10 @@ import { GCloud_TTS_API_KEY, VOICES, PROMPT_STYLES, STYLE_PROMPTS } from './conf
 import { startRecording, stopRecording, isRecording } from './microphone.js';
 import { transcribeAudio, synthesizeSpeech } from './speech.js';
 import { getPageText, summarizeText } from './textTreatment.js';
-import { findRelevantContent, findRelevantContentComparison } from './textFiltering.js';
+import { findRelevantContent } from './textFiltering.js';
 import { initUI, createOptions, playAudio, stopAudio, showProcessingIndicator, hideProcessingIndicator, resetUI } from './ui.js';
 
-// Variables globales
+// global variables
 let selectedVoice = VOICES[0].name;
 let selectedPromptStyle = PROMPT_STYLES[0].name;
 
@@ -14,30 +14,30 @@ let selectedPromptStyle = PROMPT_STYLES[0].name;
 // ------------------------------
 async function processAudio(recordedBlob, duration) {
   console.log("\n" + "=".repeat(60));
-  console.log("🎬 [popup.js] processAudio appelé");
+  console.log("🎬 [popup.js] processAudio called");
   console.log("=".repeat(60));
-  console.log(`📊 Paramètres reçus:`);
+  console.log(`📊 Parameters received:`);
   console.log(`   - Blob size: ${recordedBlob.size} bytes`);
   console.log(`   - Blob type: ${recordedBlob.type}`);
   console.log(`   - Duration: ${duration}ms`);
 
   try {
-    // ========== ÉTAPE 1 : Vérification Blob ==========
-    console.log("\n📦 ÉTAPE 1 : Vérification Audio Blob");
+    // ========== STEP 1 : Vérification Blob ==========
+    console.log("\n📦 STEP 1 : Vérification Audio Blob");
     console.log("─".repeat(60));
 
     if (!recordedBlob) {
-      throw new Error("recordedBlob est undefined");
+      throw new Error("recordedBlob is undefined");
     }
 
     if (recordedBlob.size === 0) {
-      throw new Error("recordedBlob est vide (0 bytes)");
+      throw new Error("recordedBlob is empty (0 bytes)");
     }
 
-    console.log(`✅ Blob valide : ${recordedBlob.size} bytes`);
+    console.log(`✅ Blob valid: ${recordedBlob.size} bytes`);
 
-    // ========== ÉTAPE 2 : Transcription STT ==========
-    console.log("\n🎙️ ÉTAPE 2 : Transcription STT");
+    // ========== STEP 2 : Transcription STT ==========
+    console.log("\n🎙️ STEP 2 : Transcription STT");
     console.log("─".repeat(60));
     const startSTT = performance.now();
     
@@ -45,73 +45,59 @@ async function processAudio(recordedBlob, duration) {
     const userQuestion = await transcribeAudio(recordedBlob);
 
     const durationSTT = (performance.now() - startSTT).toFixed(0);
-    console.log(`✅ Transcription terminée en ${durationSTT}ms`);
-    console.log(`   Texte : "${userQuestion}"`);
+    console.log(`✅ Transcription ended in ${durationSTT}ms`);
+    console.log(`   Text: "${userQuestion}"`);
 
     if (!userQuestion || userQuestion.trim() === '') {
-      console.error("❌ Transcription vide");
+      console.error("❌ Transcription empty");
       alert("No speech detected. Please try again.");
       return;
     }
-
-    // ========== ÉTAPE 3 : Extraction texte ==========
-    // console.log("\n📄 ÉTAPE 3 : Extraction texte page");
-    // console.log("─".repeat(60));
-    // const startExtract = performance.now();
-
-    // const pageText = await getPageText();
-
-    // const durationExtract = (performance.now() - startExtract).toFixed(0);
-    // console.log(`✅ Extraction terminée en ${durationExtract}ms`);
-    // console.log(`   Longueur : ${pageText.length} caractères`);
-    // console.log(`   Aperçu : "${pageText.substring(0, 100)}..."`);
-    console.log("\n📄 ÉTAPE 3 : Extraction du texte de la page");
+    // ========== STEP 3 : Extraction of text from page ==========
+    console.log("\n📄 STEP 3 : Extraction of text from page");
     console.log("─".repeat(60));
     const startExtract = performance.now();
 
     let pageText = await getPageText();
 
-    // ✅ FALLBACK si extraction vide
+    // ✅ FALLBACK if extraction empty
     if (!pageText || pageText.trim().length < 100) {
-      console.warn("   ⚠️ Extraction principale a échoué, essai méthode simple...");
+      console.warn("   ⚠️ Main extraction failed, trying simple method...");
       
-      // Importer la méthode simple
+      // Import the simple method
       const { getPageTextSimple } = await import('./textTreatment.js');
       pageText = await getPageTextSimple();
       
       if (!pageText || pageText.trim().length < 100) {
-        console.error("   ❌ Les deux méthodes ont échoué !");
+        console.error("   ❌ Both methods failed!");
         alert("Could not extract text from page.");
         return;
       }
-      
-      console.log("   ✅ Méthode simple a réussi !");
+
+      console.log("   ✅ Simple method succeeded!");
     }
 
     const durationExtract = (performance.now() - startExtract).toFixed(0);
     console.log(`✅ Extraction: ${pageText.length} chars (${durationExtract}ms)`);
-    console.log(`   Aperçu : "${pageText.substring(0, 100)}..."`);
+    console.log(`   Preview: "${pageText.substring(0, 100)}..."`);
 
-        // ========== ÉTAPE 3.5 : Filtrage intelligent ==========
-    console.log("\n🎯 ÉTAPE 3.5 : Filtrage du contenu pertinent");
+    // ========== STEP 3.5 : Intelligent Filtering ==========
+    console.log("\n🎯 STEP 3.5 : Filtering Relevant Content");
     console.log("─".repeat(60));
     const startFilter = performance.now();
 
     let relevantText = findRelevantContent(pageText, userQuestion, 1500);
-    // const relevantText = findRelevantContentComparison(pageText, userQuestion, 1500);
-    // console.log("-----PAGE TEXT-----");
-    // console.log(pageText);
 
     const durationFilter = (performance.now() - startFilter).toFixed(0);
     const reductionPercent = ((1 - relevantText.length / pageText.length) * 100).toFixed(1);
-    console.log(`✅ Filtrage terminé en ${durationFilter}ms`);
-    console.log(`   Longueur avant : ${pageText.length} chars`);
-    console.log(`   Longueur après : ${relevantText.length} chars`);
-    console.log(`   Réduction : ${reductionPercent}%`);
-    console.log(`   Aperçu filtré : "${relevantText.substring(0, 100)}..."`);
+    console.log(`✅ Filtering completed in ${durationFilter}ms`);
+    console.log(`   Length before: ${pageText.length} chars`);
+    console.log(`   Length after: ${relevantText.length} chars`);
+    console.log(`   Reduction: ${reductionPercent}%`);
+    console.log(`   Preview: "${relevantText.substring(0, 100)}..."`);
 
-    // ========== ÉTAPE 4 : LLM ==========
-    console.log("\n🤖 ÉTAPE 4 : Génération réponse LLM");
+    // ========== STEP 4 : LLM ==========
+    console.log("\n🤖 STEP 4 : Generating LLM Response");
     console.log("─".repeat(60));
     const startLLM = performance.now();
 
@@ -122,17 +108,17 @@ async function processAudio(recordedBlob, duration) {
     const summary = await summarizeText(relevantText, userQuestion, STYLE_PROMPTS, selectedPromptStyle);
 
     const durationLLM = (performance.now() - startLLM).toFixed(0);
-    console.log(`✅ Réponse LLM en ${durationLLM}ms`);
-    console.log(`   Longueur : ${summary.length} caractères`);
+    console.log(`✅ LLM Response generated in ${durationLLM}ms`);
+    console.log(`   Length: ${summary.length} characters`);
 
     if (!summary || summary.trim() === '') {
-      console.error("❌ Réponse LLM vide");
+      console.error("❌ LLM Response is empty");
       alert("Could not generate a response.");
       return;
     }
 
-    // ========== ÉTAPE 5 : TTS ==========
-    console.log("\n🔊 ÉTAPE 5 : Text-to-Speech");
+    // ========== STEP 5 : TTS ==========
+    console.log("\n🔊 STEP 5 : Text-to-Speech");
     console.log("─".repeat(60));
 
     const startTTS = performance.now();
@@ -141,13 +127,13 @@ async function processAudio(recordedBlob, duration) {
     await playAudio(ttsBlob);
 
     const durationTTS = (performance.now() - startTTS).toFixed(0);
-    console.log(`✅ TTS terminé en ${durationTTS}ms`);
+    console.log(`✅ TTS completed in ${durationTTS}ms`);
 
-    // ========== RÉSUMÉ ==========
+    // ========== SUMMARY ==========
     console.log("\n" + "=".repeat(60));
-    console.log("🎉 TRAITEMENT TERMINÉ");
+    console.log("🎉 PROCESSING COMPLETED");
     console.log("=".repeat(60));
-    console.log("⏱️  Temps total :");
+    console.log("⏱️  Total Time:");
     console.log(`   STT      : ${durationSTT}ms`);
     console.log(`   Extract  : ${durationExtract}ms`);
     console.log(`   Filter   : ${durationFilter}ms`);
@@ -161,7 +147,7 @@ async function processAudio(recordedBlob, duration) {
 
   } catch (error) {
     console.log("\n" + "!".repeat(60));
-    console.error("❌ ERREUR CRITIQUE");
+    console.error("❌ CRITICAL ERROR");
     console.log("!".repeat(60));
     console.error("Type :", error.name);
     console.error("Message :", error.message);
@@ -175,34 +161,34 @@ async function processAudio(recordedBlob, duration) {
 }
 
 // ------------------------------
-// Gestion boutons
+// Button Management
 // ------------------------------
 async function handleMicButton(micBtn) {
-  console.log("🎤 [popup.js] Bouton micro cliqué");
+  console.log("🎤 [popup.js] Microphone button clicked");
 
   if (!isRecording()) {
-    console.log("▶️ Démarrage enregistrement...");
+    console.log("▶️ Starting recording...");
     micBtn.textContent = "⏹ Stop Recording";
 
     try {
       // ✅ Passer processAudio comme callback
-      console.log("📞 Appel startRecording avec callback processAudio");
+      console.log("📞 Calling startRecording with callback processAudio");
       await startRecording(processAudio);
-      console.log("✅ startRecording appelé avec succès");
+      console.log("✅ startRecording called successfully");
     } catch (err) {
-      console.error("❌ Erreur startRecording:", err);
+      console.error("❌ startRecording error:", err);
       micBtn.textContent = "▶ Speak";
       alert("Microphone access denied");
     }
   } else {
-    console.log("⏹️ Arrêt enregistrement...");
+    console.log("⏹️ Stopping recording...");
     stopRecording();
     micBtn.textContent = "▶ Speak";
   }
 }
 
 function handleStopButton() {
-  console.log("⏹️ [popup.js] Bouton stop cliqué");
+  console.log("⏹️ [popup.js] Stop button clicked");
   stopRecording();
   stopAudio();
   resetUI();  // Reset all UI elements
@@ -211,10 +197,10 @@ function handleStopButton() {
 function handleOptionSelect(value, type) {
   if (type === "voice") {
     selectedVoice = value;
-    console.log("✅ Voice sélectionnée:", value);
+    console.log("✅ Voice selected:", value);
   } else {
     selectedPromptStyle = value;
-    console.log("✅ Style sélectionné:", value);
+    console.log("✅ Style selected:", value);
   }
 }
 
@@ -227,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const micBtn = document.getElementById("micBtn");
   const stopBtn = document.getElementById("stopBtn");
 
-  console.log("📦 Elements trouvés:", {
+  console.log("📦 Elements found:", {
     micBtn: !!micBtn,
     stopBtn: !!stopBtn
   });
@@ -235,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialiser UI
   initUI();
 
-  // Créer options
+  // Create options
   createOptions("voiceOptions", VOICES, "voice", handleOptionSelect);
   createOptions("styleOptions", PROMPT_STYLES, "style", handleOptionSelect);
 
@@ -257,5 +243,5 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  console.log("✅ Extension initialisée");
+  console.log("✅ Extension initialised");
 });
