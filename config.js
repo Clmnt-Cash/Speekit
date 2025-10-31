@@ -1,4 +1,7 @@
-export const GCloud_TTS_API_KEY = "AIzaSyAa3X5OxtCEjzB8Yui2BXLVZP_r96HTY0c";
+import dotenv from 'dotenv';
+dotenv.config();
+
+export const GCloud_TTS_API_KEY = process.env.GCLOUD_TTS_API_KEY;
 
 export const VOICES = [
     { name: "en-US-Wavenet-D", label: "Male 1", icon: "icons/man.png" },
