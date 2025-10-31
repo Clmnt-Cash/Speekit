@@ -226,11 +226,6 @@ export function findRelevantContent(fullText, userQuestion, maxChars = 1500) {
   
   scoredSections.sort((a, b) => b.score - a.score);
   
-  console.log("   📊 Top 3:");
-  scoredSections.slice(0, 3).forEach((s, i) => {
-    console.log(`      ${i + 1}. Score: ${s.score.toFixed(2)} - "${s.section.substring(0, 60)}..."`);
-  });
-  
   return buildFilteredText(scoredSections, maxChars);
 }
 // ------------------------------

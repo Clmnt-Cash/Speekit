@@ -10,8 +10,6 @@ export async function getPageText() {
     });
 
     let text = result[0]?.result || '';
-    console.log(`   📊 Texte brut extrait: ${text.length} caractères`);
-    console.log(`   Aperçu brut: "${text.substring(0, 200)}..."`);
 
     if (text.length === 0) {
       console.error("   ❌ Aucun texte extrait de la page !");
@@ -21,7 +19,6 @@ export async function getPageText() {
     // Cleanup léger
     text = lightCleanup(text);
     console.log(`   ✅ Après nettoyage léger: ${text.length} caractères`);
-    console.log(`   Aperçu nettoyé: "${text.substring(0, 200)}..."`);
     
     return text;
 

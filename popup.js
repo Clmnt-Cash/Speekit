@@ -54,8 +54,6 @@ async function processAudio(recordedBlob, duration) {
       return;
     }
     // ========== STEP 3 : Extraction of text from page ==========
-    console.log("\n📄 STEP 3 : Extraction of text from page");
-    console.log("─".repeat(60));
     const startExtract = performance.now();
 
     let pageText = await getPageText();
@@ -79,7 +77,6 @@ async function processAudio(recordedBlob, duration) {
 
     const durationExtract = (performance.now() - startExtract).toFixed(0);
     console.log(`✅ Extraction: ${pageText.length} chars (${durationExtract}ms)`);
-    console.log(`   Preview: "${pageText.substring(0, 100)}..."`);
 
     // ========== STEP 3.5 : Intelligent Filtering ==========
     console.log("\n🎯 STEP 3.5 : Filtering Relevant Content");
@@ -94,7 +91,6 @@ async function processAudio(recordedBlob, duration) {
     console.log(`   Length before: ${pageText.length} chars`);
     console.log(`   Length after: ${relevantText.length} chars`);
     console.log(`   Reduction: ${reductionPercent}%`);
-    console.log(`   Preview: "${relevantText.substring(0, 100)}..."`);
 
     // ========== STEP 4 : LLM ==========
     console.log("\n🤖 STEP 4 : Generating LLM Response");
@@ -132,13 +128,6 @@ async function processAudio(recordedBlob, duration) {
     // ========== SUMMARY ==========
     console.log("\n" + "=".repeat(60));
     console.log("🎉 PROCESSING COMPLETED");
-    console.log("=".repeat(60));
-    console.log("⏱️  Total Time:");
-    console.log(`   STT      : ${durationSTT}ms`);
-    console.log(`   Extract  : ${durationExtract}ms`);
-    console.log(`   Filter   : ${durationFilter}ms`);
-    console.log(`   LLM      : ${durationLLM}ms`);
-    console.log(`   TTS      : ${durationTTS}ms`);
     const totalTime = parseFloat(durationSTT) + parseFloat(durationExtract) + 
                       parseFloat(durationFilter) + parseFloat(durationLLM) + 
                       parseFloat(durationTTS);
