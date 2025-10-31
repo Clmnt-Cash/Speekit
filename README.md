@@ -88,7 +88,7 @@ Our vision is to make Speekit a trusted **AI accessibility companion** bringing 
 ## Installation  
 1. Clone the repository:  
    ```bash
-   git clone https://github.com/your-repo/speekit.git
+   git clone https://github.com/Clmnt-Cash/Speekit.git
    ```
 2. Open Chrome and go to:  
    ```
