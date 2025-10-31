@@ -1,7 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-export const GCloud_TTS_API_KEY = process.env.GCLOUD_TTS_API_KEY;
+// Please change here your key for Google Cloud Text-to-Speech API :
+export const GCloud_TTS_API_KEY = "AIzaSyAa3X5OxtCEjzB8Yui2BXLVZP_r96HTY0c";
 
 export const VOICES = [
     { name: "en-US-Wavenet-D", label: "Male 1", icon: "icons/man.png" },
