@@ -8,11 +8,11 @@ It uses the **Chrome Built-in AI API (Gemini)** to understand web content and ge
 ---
 
 ## Inspiration  
-The web is full of information and opportunities — but for millions of people, it’s still not truly accessible.  
+The web is full of information and opportunities, but for millions of people, it’s still not truly accessible.  
 Visually impaired or elderly users often struggle to read small text, navigate complex layouts, or find the right information quickly.  
 
 We wanted to create something that would **make the web more human**, by allowing users to simply *ask questions* and *listen to answers* instead of struggling with the interface.  
-That idea became **Speekit** — a Chrome extension that uses AI to make browsing accessible, conversational, and effortless.
+That idea became **Speekit**, a Chrome extension that uses AI to make browsing accessible, conversational, and effortless.
 
 ---
 
@@ -22,7 +22,7 @@ That idea became **Speekit** — a Chrome extension that uses AI to make browsin
 When a user asks a question while browsing, Speekit:
 1. **Analyzes** the page content and identifies relevant information related to the query.  
 2. Sends this context to **Chrome Prompt AI (Gemini)**, which generates a clear and natural-language answer.  
-3. **Customizes** the AI’s personality — users can choose between *funny*, *friendly*, *casual*, or *formal* tones.  
+3. **Customizes** the AI’s personality, users can choose between *funny*, *friendly*, *casual*, or *formal* tones.  
 4. Converts the response into speech using **Google Cloud Text-to-Speech**, offering **four voice options** (two male and two female).  
 
 Everything happens in seconds, turning passive reading into **active, accessible conversation** with the web.
@@ -38,7 +38,7 @@ We developed **Speekit** as a Chrome extension using:
 - **TF-IDF algorithm** for precise information extraction  
 
 The entire architecture is **asynchronous**, ensuring smooth, low-latency communication between the AI and TTS pipeline.  
-We also designed a **clean, intuitive popup UI** that requires minimal effort from the user — just one question and one click.
+We also designed a **clean, intuitive popup UI** that requires minimal effort from the user, just one question and one click.
 
 ---
 
@@ -81,7 +81,7 @@ We’re planning to:
 - Integrate **real-time translation** for broader accessibility.  
 - Publish Speekit on the **Chrome Web Store** for public access.  
 
-Our vision is to make Speekit a trusted **AI accessibility companion** — bringing the power of conversation to the web for everyone.
+Our vision is to make Speekit a trusted **AI accessibility companion** bringing the power of conversation to the web for everyone.
 
 ---
 
@@ -102,11 +102,17 @@ Our vision is to make Speekit a trusted **AI accessibility companion** — bring
 
 ## Usage  
 1. Click the **Speekit** icon in the Chrome toolbar  
-2. Ask your question or choose **“Read the page”**  
+2. Click on **“Speak”** and ask your question
 3. Listen to the answer, spoken naturally in the voice and tone of your choice  
 
 ---
 
-## The possibilities are endless  
-Summarize an email. Compare products. Explain a GitHub project. Get help filling out forms.  
-Whatever you’re doing on the web — **Speekit makes it easier, faster, and more accessible for everyone.**
+## Creators  
+
+**Speekit** was developed by:  
+
+- **Gabriel Guiet-Dupré**
+  [GitHub](https://github.com/Gab404) | [LinkedIn](https://www.linkedin.com/in/gabriel-guiet-dupre/)  
+
+- **Clément Cachet**
+  [GitHub](https://github.com/Clmnt-Cash) | [LinkedIn](https://www.linkedin.com/in/cl%C3%A9ment-cachet-13144624a/)  
